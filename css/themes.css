@@ -1,0 +1,74 @@
+:root{--bg0:#070b14;--bg1:#0b1120;--bg2:#080d1a;--bg3:#0f172a;--bg4:#1e293b;--bg5:#334155;--bd0:#111a2e;--bd:#1e293b;--bd2:#334155;--tx0:#fff;--tx1:#e2e8f0;--tx2:#cbd5e1;--tx3:#94a3b8;--tx4:#64748b;--up:#34d399;--down:#fb7185;--warn:#fbbf24;--glass:rgba(11,17,32,.9);--glass2:rgba(11,17,32,.97);color-scheme:dark}
+html[data-eff=light]{--bg0:#f4f6fa;--bg1:#ffffff;--bg2:#eef1f6;--bg3:#e8ecf3;--bg4:#dbe1ea;--bg5:#64748b;--bd0:#e6eaf1;--bd:#d5dbe5;--bd2:#b8c2d1;--tx0:#0f172a;--tx1:#0f172a;--tx2:#1e293b;--tx3:#475569;--tx4:#64748b;--up:#047857;--down:#be123c;--warn:#b45309;--glass:rgba(255,255,255,.92);--glass2:rgba(255,255,255,.98);color-scheme:light}
+html[data-eff=paper]{--bg0:#f3ead8;--bg1:#fbf5e6;--bg2:#efe5cf;--bg3:#e8dcc2;--bg4:#dccfb0;--bg5:#8a7a5c;--bd0:#e6dac1;--bd:#d6c8a8;--bd2:#bfae8a;--tx0:#2b2418;--tx1:#2b2418;--tx2:#3d3424;--tx3:#6b5d44;--tx4:#8a7a5c;--up:#047857;--down:#be123c;--warn:#b45309;--glass:rgba(251,245,230,.92);--glass2:rgba(251,245,230,.98);color-scheme:light}
+html[data-eff=amoled]{--bg0:#000;--bg1:#000;--bg2:#000;--bg3:#0b0b0b;--bg4:#161616;--bg5:#2a2a2a;--bd0:#0f0f0f;--bd:#1c1c1c;--bd2:#2a2a2a;--glass:rgba(0,0,0,.92);--glass2:rgba(0,0,0,.97)}
+html[data-eff=contrast]{--bg0:#000;--bg1:#0a0a0a;--bg2:#000;--bd:#475569;--bd2:#64748b;--tx1:#fff;--tx2:#f1f5f9;--tx3:#e2e8f0;--tx4:#cbd5e1;--up:#4ade80}
+html,body{background:var(--bg0)}
+/* Kelas Tailwind -> variabel. Tema Gelap tidak disentuh (warna asli Tailwind). */
+html:not([data-eff=dark]) [class*="bg-[#070b14]"]{background-color:var(--bg0)}
+html:not([data-eff=dark]) [class*="bg-[#0b1120]"]{background-color:var(--bg1)}
+html:not([data-eff=dark]) [class*="bg-[#080d1a]"],html:not([data-eff=dark]) [class*="bg-[#050811]"]{background-color:var(--bg2)}
+html:not([data-eff=dark]) [class*="bg-slate-900"]{background-color:var(--bg3)}
+html:not([data-eff=dark]) [class*="bg-slate-800"]{background-color:var(--bg4)}
+html:not([data-eff=dark]) [class*="bg-slate-700"],html:not([data-eff=dark]) [class*="bg-slate-600"]{background-color:var(--bg5)}
+html:not([data-eff=dark]) [class*="hover:bg-slate-800"]:hover{background-color:var(--bg4)}
+html:not([data-eff=dark]) [class*="hover:bg-slate-700"]:hover,html:not([data-eff=dark]) [class*="hover:bg-slate-600"]:hover{background-color:var(--bg5)}
+html:not([data-eff=dark]) [class*="border-slate-800"]{border-color:var(--bd)}
+html:not([data-eff=dark]) [class*="border-slate-700"]{border-color:var(--bd2)}
+html:not([data-eff=dark]) [class*="divide-slate-800"]>:not([hidden])~:not([hidden]){border-color:var(--bd)}
+html:not([data-eff=dark]) .text-white:not([class*="bg-gradient"]):not([class*="bg-rose-"]):not([class*="bg-cyan-"]):not([class*="bg-slate-7"]):not([class*="bg-indigo-"]):not([class*="bg-emerald-"]){color:var(--tx0)}
+html:not([data-eff=dark]) .text-slate-100,html:not([data-eff=dark]) .text-slate-200{color:var(--tx1)}
+html:not([data-eff=dark]) .text-slate-300{color:var(--tx2)}
+html:not([data-eff=dark]) .text-slate-400{color:var(--tx3)}
+html:not([data-eff=dark]) .text-slate-500,html:not([data-eff=dark]) .text-slate-600{color:var(--tx4)}
+html:not([data-eff=dark]) [class*="hover:text-white"]:hover{color:var(--tx0)}
+html:not([data-eff=dark]) [class*="hover:text-slate-200"]:hover,html:not([data-eff=dark]) [class*="hover:text-slate-100"]:hover{color:var(--tx1)}
+/* Aksen tema terang (Terang & Kertas): teks lebih gelap, latar tinta lembut */
+html[data-eff=light] [class*="text-emerald-"]{color:#047857}
+html[data-eff=light] [class*="bg-emerald-950"]{background-color:#d1fae5}
+html[data-eff=light] [class*="hover:bg-emerald-900"]:hover{background-color:#a7f3d0}
+html[data-eff=paper] [class*="text-emerald-"]{color:#047857}
+html[data-eff=paper] [class*="bg-emerald-950"]{background-color:#d1fae5}
+html[data-eff=paper] [class*="hover:bg-emerald-900"]:hover{background-color:#a7f3d0}
+html[data-eff=light] [class*="text-rose-"]{color:#be123c}
+html[data-eff=light] [class*="bg-rose-950"]{background-color:#ffe4e6}
+html[data-eff=light] [class*="hover:bg-rose-900"]:hover{background-color:#fecdd3}
+html[data-eff=paper] [class*="text-rose-"]{color:#be123c}
+html[data-eff=paper] [class*="bg-rose-950"]{background-color:#ffe4e6}
+html[data-eff=paper] [class*="hover:bg-rose-900"]:hover{background-color:#fecdd3}
+html[data-eff=light] [class*="text-amber-"]{color:#b45309}
+html[data-eff=light] [class*="bg-amber-950"]{background-color:#fef3c7}
+html[data-eff=light] [class*="hover:bg-amber-900"]:hover{background-color:#fde68a}
+html[data-eff=paper] [class*="text-amber-"]{color:#b45309}
+html[data-eff=paper] [class*="bg-amber-950"]{background-color:#fef3c7}
+html[data-eff=paper] [class*="hover:bg-amber-900"]:hover{background-color:#fde68a}
+html[data-eff=light] [class*="text-cyan-"]{color:#0e7490}
+html[data-eff=light] [class*="bg-cyan-950"]{background-color:#cffafe}
+html[data-eff=light] [class*="hover:bg-cyan-900"]:hover{background-color:#a5f3fc}
+html[data-eff=paper] [class*="text-cyan-"]{color:#0e7490}
+html[data-eff=paper] [class*="bg-cyan-950"]{background-color:#cffafe}
+html[data-eff=paper] [class*="hover:bg-cyan-900"]:hover{background-color:#a5f3fc}
+html[data-eff=light] [class*="text-purple-"]{color:#7e22ce}
+html[data-eff=light] [class*="bg-purple-950"]{background-color:#f3e8ff}
+html[data-eff=light] [class*="hover:bg-purple-900"]:hover{background-color:#e9d5ff}
+html[data-eff=paper] [class*="text-purple-"]{color:#7e22ce}
+html[data-eff=paper] [class*="bg-purple-950"]{background-color:#f3e8ff}
+html[data-eff=paper] [class*="hover:bg-purple-900"]:hover{background-color:#e9d5ff}
+html[data-eff=light] [class*="text-indigo-"]{color:#4338ca}
+html[data-eff=light] [class*="bg-indigo-950"]{background-color:#e0e7ff}
+html[data-eff=light] [class*="hover:bg-indigo-900"]:hover{background-color:#c7d2fe}
+html[data-eff=paper] [class*="text-indigo-"]{color:#4338ca}
+html[data-eff=paper] [class*="bg-indigo-950"]{background-color:#e0e7ff}
+html[data-eff=paper] [class*="hover:bg-indigo-900"]:hover{background-color:#c7d2fe}
+html[data-eff=light] [class*="text-sky-"]{color:#0369a1}
+html[data-eff=light] [class*="bg-sky-950"]{background-color:#e0f2fe}
+html[data-eff=light] [class*="hover:bg-sky-900"]:hover{background-color:#bae6fd}
+html[data-eff=paper] [class*="text-sky-"]{color:#0369a1}
+html[data-eff=paper] [class*="bg-sky-950"]{background-color:#e0f2fe}
+html[data-eff=paper] [class*="hover:bg-sky-900"]:hover{background-color:#bae6fd}
+html[data-eff=light] [class*="text-orange-"]{color:#c2410c}
+html[data-eff=light] [class*="bg-orange-950"]{background-color:#ffedd5}
+html[data-eff=light] [class*="hover:bg-orange-900"]:hover{background-color:#fed7aa}
+html[data-eff=paper] [class*="text-orange-"]{color:#c2410c}
+html[data-eff=paper] [class*="bg-orange-950"]{background-color:#ffedd5}
+html[data-eff=paper] [class*="hover:bg-orange-900"]:hover{background-color:#fed7aa}

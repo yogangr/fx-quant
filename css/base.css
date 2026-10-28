@@ -1,0 +1,49 @@
+html,body{height:100%;background:var(--bg0)}
+body{overscroll-behavior:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.font-mono-num{font-variant-numeric:tabular-nums;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.btn-term{touch-action:manipulation;transition:transform .06s,filter .15s}.btn-term:active{transform:scale(.96)}
+@keyframes mcf{50%{background:rgba(244,63,94,.2)}}.margin-call-flash{animation:mcf 1s infinite}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+#chart-container{height:clamp(300px,58dvh,680px)}
+/* One-click panel */
+.oc{position:absolute;top:8px;left:8px;z-index:20;max-width:calc(100% - 90px);font-family:ui-monospace,Menlo,Consolas,monospace}
+.oc-row{display:flex;align-items:stretch;gap:3px;background:var(--glass);border:1px solid var(--bd);border-radius:8px;padding:3px}
+.oc-btn{min-width:74px;padding:3px 8px;border-radius:6px;font-weight:700;color:var(--tx0);text-align:center;line-height:1.15}
+.oc-btn small{display:block;font-size:9px;letter-spacing:.08em;opacity:.85}.oc-btn b{font-size:13px;font-variant-numeric:tabular-nums}
+.oc-sell{background:#e11d48}.oc-buy{background:#059669}
+.oc-lot{display:flex;align-items:center;background:var(--bg0);border:1px solid var(--bd2);border-radius:6px;padding:0 2px}
+.oc-lot button{width:24px;color:var(--tx2);font-weight:700}.oc-lot input{width:52px;background:transparent;color:var(--tx0);text-align:center;font-weight:700;font-size:13px;outline:0}
+.oc-lot small{display:block;font-size:8px;color:var(--tx4);text-align:center;margin-top:-2px}
+.oc-gear{width:26px;color:var(--tx3);border-radius:6px;background:var(--bg3)}
+.oc-pop,.oc-cf{margin-top:4px;background:var(--glass2);border:1px solid var(--bd2);border-radius:8px;padding:8px;font-size:11px;color:var(--tx2);display:grid;gap:6px;width:max-content;max-width:100%}
+.oc-pop label{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.oc-pop select{background:var(--bg0);border:1px solid var(--bd2);border-radius:4px;color:#fff;padding:2px 4px}
+.fb{padding:4px 9px;border-radius:6px;background:var(--bg3);border:1px solid var(--bd2);color:var(--tx2);font-size:11px;font-weight:700;white-space:nowrap}
+.fb.on{background:#f59e0b;border-color:#f59e0b;color:#020617}
+@media(pointer:coarse){.oc-btn{min-height:44px}.oc-lot button{width:32px}.fb{padding:8px 11px}}
+/* Focus (MT5) mode */
+.focus-only{display:none}
+body.focus-mode{height:100dvh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start}
+body.focus-mode .focus-only{display:flex}
+body.focus-mode>header,body.focus-mode>footer,body.focus-mode #order-aside,body.focus-mode #pair-tabs-row,body.focus-mode #chart-tb1,body.focus-mode #chart-tb2,body.focus-mode #bottom-area{display:none!important}
+body.focus-mode #main-ws{display:flex;flex:1;min-height:0}
+body.focus-mode #ws-left{flex:1;min-height:0;width:100%}
+body.focus-mode #chart-container{flex:1;height:auto;min-height:0}
+#fpos{flex-direction:column;background:var(--bg1);border-top:1px solid var(--bd);max-height:34dvh;font-family:ui-monospace,Menlo,Consolas,monospace}
+#fpos.collapsed .fp-scroll{display:none}
+.fp-scroll{overflow:auto;min-height:0}
+#fpos table{width:100%;border-collapse:collapse;font-size:11px}
+#fpos th{position:sticky;top:0;background:var(--bg1);color:var(--tx4);font-weight:600;font-size:10px}
+#fpos td,#fpos th{padding:4px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--bd0)}
+#fpos td:nth-child(-n+2),#fpos th:nth-child(-n+2){text-align:left}
+#fpos .act button{padding:1px 8px;margin-left:3px;border-radius:4px;background:var(--bd);color:var(--tx1)}
+.t-buy{color:var(--up)}.t-sell{color:var(--down)}.t-pend{color:var(--warn)}.empty{text-align:center!important;color:var(--tx4)}
+@media(max-width:640px){.hs{display:none}}
+#toast{position:fixed;top:calc(env(safe-area-inset-top) + 54px);left:50%;transform:translateX(-50%);z-index:70;background:var(--bg3);border:1px solid var(--bd2);color:var(--tx1);padding:6px 12px;border-radius:8px;font:12px ui-monospace,monospace;max-width:92vw;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}#toast.t-good{border-color:#10b981}#toast.t-bad{border-color:#f43f5e}
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }

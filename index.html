@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FX-QUANT v2.0 // Terminal Prop-Firm XAU/USD & BTC/USD</title>
+<meta name="theme-color" content="#070b14">
+<script>
+(function(){var K='FX_QUANT_THEME',mq=window.matchMedia&&matchMedia('(prefers-color-scheme: light)');
+window.applyTheme=function(p){var e=p==='auto'?(mq&&mq.matches?'light':'dark'):p,h=document.documentElement;h.dataset.theme=p;h.dataset.eff=e;
+var m=document.querySelector('meta[name=theme-color]');if(m)m.content={light:'#e8ecf3',paper:'#ece4d3',amoled:'#000000'}[e]||'#070b14'};
+var p='dark';try{p=localStorage.getItem(K)||'dark'}catch(x){}
+applyTheme(p);if(mq&&mq.addEventListener)mq.addEventListener('change',function(){if(document.documentElement.dataset.theme==='auto')applyTheme('auto')});})();
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/themes.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-[#070b14] text-slate-200">
+
+    <!-- MARGIN CALL / PROP FIRM ALERT BANNER (Hidden by default) -->
+    <div id="alert-banner" class="hidden bg-rose-950 border-b border-rose-500 px-4 py-2 text-xs font-mono flex items-center justify-between gap-2 z-50">
+        <div class="flex items-center gap-2">
+            <span class="bg-rose-500 text-white font-bold px-2 py-0.5 rounded text-[11px]">PERINGATAN TERMINAL</span>
+            <span id="alert-banner-text" class="text-rose-200 font-semibold">Margin Call terdeteksi!</span>
+        </div>
+        <button onclick="document.getElementById('alert-banner').classList.add('hidden')" class="text-rose-200 hover:text-white border border-rose-500/40 px-2 py-0.5 rounded">
+            [TUTUP]
+        </button>
+    </div>
+
+    <!-- FOCUS BAR (MT5 mode) -->
+    <div id="focus-bar" class="focus-only items-center gap-1.5 px-2 py-1.5 bg-[#0b1120] border-b border-slate-800 font-mono overflow-x-auto">
+        <button id="fp-XAUUSD" class="fb" onclick="selectPair('XAUUSD')">XAU <span id="fp-px-XAUUSD"></span></button>
+        <button id="fp-BTCUSD" class="fb" onclick="selectPair('BTCUSD')">BTC <span id="fp-px-BTCUSD"></span></button>
+        <span class="text-slate-700">|</span>
+        <button id="ftf-M1" class="fb" onclick="setTimeframe('M1')">M1</button><button id="ftf-M5" class="fb" onclick="setTimeframe('M5')">M5</button><button id="ftf-M15" class="fb" onclick="setTimeframe('M15')">M15</button><button id="ftf-H1" class="fb" onclick="setTimeframe('H1')">H1</button>
+        <span class="flex-1"></span>
+        <button class="fb" onclick="zoomChart(-12)"><i class="fa-solid fa-magnifying-glass-plus"></i></button><button class="fb" onclick="zoomChart(12)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+        <button class="fb" onclick="resetChartZoomPan()" title="Ke candle terbaru"><i class="fa-solid fa-forward-fast"></i></button>
+        <button id="fspd" class="fb" onclick="cycleSpeed()" title="Kecepatan / Pause">1x</button>
+        <button class="fb" onclick="toggleFullscreen()"><i class="fs-ic fa-solid fa-expand"></i></button>
+        <button class="fb" onclick="openHistory()" title="Riwayat"><i class="fa-solid fa-clock-rotate-left"></i></button><button class="fb" onclick="openAcct()" title="Mode akun"><i class="fa-solid fa-wallet"></i></button>
+        <button class="fb" onclick="cycleTheme()" title="Ganti tema"><i class="fa-solid fa-palette"></i></button>
+        <button class="fb" onclick="toggleFocus()" title="Kembali ke dashboard lengkap"><i class="fa-solid fa-table-columns"></i></button>
+    </div>
+
+    <!-- TOP BAR & ACCOUNT TELEMETRY -->
+    <header class="border-b border-slate-800/90 bg-[#0b1120]/95 lg:sticky lg:top-0 z-30 backdrop-blur-md">
+        <!-- Window Header Bar -->
+        <div class="flex flex-wrap items-center justify-between px-3 py-1.5 border-b border-slate-800 text-xs bg-[#070b14] gap-2">
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                    <span class="font-mono font-bold tracking-wider text-emerald-400 text-sm">FX-QUANT <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-500/40">v2.0 PRO</span></span>
+                </div>
+                <span class="text-slate-700">|</span>
+                <span id="tier-badge" class="bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold px-2 py-0.5 rounded">
+                    TIER 1: EVALUASI PROP-FIRM $10K
+                </span>
+                <!-- Seed Indicator / Changer -->
+                <button onclick="openSeedModal()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 font-mono text-[11px] px-2 py-0.5 rounded flex items-center gap-1" title="Ubah Seed PRNG agar grafik identik dengan teman">
+                    <i class="fa-solid fa-seedling text-[10px]"></i>
+                    <span>SEED: <b id="ui-seed-code">QUANT-2026</b></span>
+                </button>
+                <!-- Funding / Swap Rollover Countdown -->
+                <div class="font-mono text-[11px] text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded flex items-center gap-1.5" title="Siklus Swap / Funding Rate setiap 25 Tick">
+                    <i class="fa-solid fa-clock-rotate-left text-purple-400 text-[10px]"></i>
+                    <span>SWAP/FUNDING: <b id="ui-funding-timer" class="text-purple-300">25t</b></span>
+                </div>
+            </div>
+
+            <!-- Speed, Manual Tick, Audio & Save Controls -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <div class="font-mono text-[11px] text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
+                    TICK #<span id="ui-tick-count" class="text-slate-200 font-bold">1</span>
+                </div>
+
+                <!-- Speed Selector -->
+                <div class="flex items-center bg-slate-900 border border-slate-800 rounded p-0.5 font-mono text-[11px]">
+                    <button id="spd-0" onclick="setSimSpeed(0)" class="px-2 py-0.5 rounded text-slate-400 hover:text-white" title="Pause">
+                        <i class="fa-solid fa-pause"></i>
+                    </button>
+                    <button id="spd-1" onclick="setSimSpeed(1)" class="px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-bold" title="1x (500ms/tick)">1x</button>
+                    <button id="spd-2" onclick="setSimSpeed(2)" class="px-2 py-0.5 rounded text-slate-400 hover:text-white" title="2x (250ms/tick)">2x</button>
+                    <button id="spd-5" onclick="setSimSpeed(5)" class="px-2 py-0.5 rounded text-slate-400 hover:text-white" title="5x Turbo (100ms/tick)">5x</button>
+                </div>
+
+                <button onclick="manualStepTick()" class="btn-term bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 font-mono text-[11px] px-2 py-0.5 rounded" title="Majukan 1 Tick Pasar">
+                    <i class="fa-solid fa-forward-step text-[10px]"></i> +1 Tick
+                </button>
+
+                <button onclick="openShare()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Bagikan hasil (tautan / gambar)"><i class="fa-solid fa-share-nodes text-cyan-400"></i> <span class="hidden sm:inline">Bagikan</span></button>
+                <button onclick="openHistory()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Riwayat trading (tekan H)"><i class="fa-solid fa-clock-rotate-left text-cyan-400"></i> <span class="hidden sm:inline">Riwayat</span></button>
+                <button onclick="openAcct()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Mode akun &amp; saldo awal"><i class="fa-solid fa-wallet text-amber-400"></i> <span class="hidden sm:inline">Akun</span></button>
+                <button onclick="cycleTheme()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Ganti tema (tekan T)"><i class="fa-solid fa-palette"></i></button>
+                <button onclick="toggleFocus()" class="btn-term bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-mono text-[11px] px-2 py-0.5 rounded" title="Mode Fokus ala MetaTrader 5 (tekan M)"><i class="fa-solid fa-chart-line"></i> <span class="hidden sm:inline">Mode Fokus</span></button>
+                <button onclick="toggleFullscreen()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Layar penuh (tekan F)"><i class="fs-ic fa-solid fa-expand"></i></button>
+                <button id="btn-audio" onclick="toggleSound()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-[11px] px-2.5 py-0.5 rounded" title="Toggle Web Audio Synth">
+                    <i id="icon-audio" class="fa-solid fa-volume-high"></i>
+                </button>
+
+                <button onclick="openSaveModal()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2.5 py-0.5 rounded flex items-center gap-1">
+                    <i class="fa-solid fa-floppy-disk text-cyan-400"></i> <span class="hidden sm:inline">Save / Base64</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 6-Card Account Telemetry Bar -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-800">
+            <!-- 1. Balance & Personal Wallet -->
+            <div class="p-2 px-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>SALDO PROP (BALANCE)</span>
+                    <span class="text-emerald-400">MODAL</span>
+                </div>
+                <div id="kpi-balance" class="text-base sm:text-lg font-bold font-mono-num text-white mt-0.5">$10,000.00</div>
+                <div class="text-[11px] font-mono text-amber-300 flex items-center justify-between">
+                    <span>Dompet Profit:</span>
+                    <b id="kpi-wallet">$0.00</b>
+                </div>
+            </div>
+
+            <!-- 2. Equity -->
+            <div class="p-2 px-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>EKUITAS (EQUITY)</span>
+                    <span id="kpi-roi-badge" class="text-emerald-400 font-bold">+0.00%</span>
+                </div>
+                <div id="kpi-equity" class="text-base sm:text-lg font-bold font-mono-num text-emerald-400 mt-0.5">$10,000.00</div>
+                <div id="kpi-drawdown-floor" class="text-[11px] font-mono text-slate-400">
+                    Batas Drawdown: <span class="text-rose-400 font-semibold">$9,000</span>
+                </div>
+            </div>
+
+            <!-- 3. Floating PnL -->
+            <div class="p-2 px-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>FLOATING PnL TERBUKA</span>
+                    <button onclick="closeAllPositions()" class="text-[10px] bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-500/40 px-1.5 rounded">
+                        Tutup Semua
+                    </button>
+                </div>
+                <div id="kpi-floating" class="text-base sm:text-lg font-bold font-mono-num text-slate-300 mt-0.5">$0.00</div>
+                <div id="kpi-open-count" class="text-[11px] font-mono text-slate-400">0 Posisi | 0 Pending</div>
+            </div>
+
+            <!-- 4. Used & Free Margin -->
+            <div class="p-2 px-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>MARGIN TERPAKAI</span>
+                    <span>FREE MARGIN</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-0.5 font-mono-num">
+                    <span id="kpi-used-margin" class="text-sm sm:text-base font-bold text-cyan-300">$0.00</span>
+                    <span id="kpi-free-margin" class="text-xs sm:text-sm font-semibold text-slate-300">$10,000.00</span>
+                </div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+                    <div id="kpi-margin-bar" class="bg-cyan-400 h-full transition-all duration-150" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- 5. Margin Level (%) -->
+            <div id="card-margin-level" class="p-2 px-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>MARGIN LEVEL (%)</span>
+                    <span id="kpi-liq-threshold" class="text-rose-400">MC &le; 50%</span>
+                </div>
+                <div id="kpi-margin-level" class="text-base sm:text-lg font-bold font-mono-num text-emerald-400 mt-0.5">&infin; %</div>
+                <div id="kpi-margin-status" class="text-[11px] font-mono text-slate-400">Status: AMAN</div>
+            </div>
+
+            <!-- 6. Prop-Firm Challenge Progress -->
+            <div class="p-2 px-3 flex flex-col justify-between">
+                <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <span>TARGET LULUS TIER</span>
+                    <button onclick="resetPropChallenge()" class="text-[10px] text-amber-400 hover:underline" title="Reset saldo akun ke awal ujian">
+                        [Reset Ujian]
+                    </button>
+                </div>
+                <div class="flex items-center justify-between font-mono-num text-xs font-bold mt-0.5">
+                    <span id="kpi-target-text" class="text-amber-300">Target: $11,000.00</span>
+                    <span id="kpi-target-pct" class="text-emerald-400">0%</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1 relative">
+                    <div id="kpi-target-bar" class="bg-gradient-to-r from-emerald-500 to-amber-400 h-full transition-all duration-200" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MACRO ECONOMIC NEWS CALENDAR & INTEL TICKER -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 border-t border-slate-800 bg-[#070b14] text-xs font-mono">
+            <!-- Upcoming Macro Event Countdown -->
+            <div class="lg:col-span-7 flex items-center justify-between px-3 py-1.5 border-b lg:border-b-0 lg:border-r border-slate-800 gap-2">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span class="bg-amber-500/20 border border-amber-500/50 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1">
+                        <i class="fa-regular fa-calendar-check"></i> KALENDER MAKRO
+                    </span>
+                    <span id="news-upcoming-title" class="text-slate-200 truncate text-[11px]">
+                        Menunggu jadwal rilis data ekonomi berikutnya...
+                    </span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span id="news-slippage-badge" class="hidden bg-rose-500/20 border border-rose-500/50 text-rose-300 px-1.5 py-0.5 rounded text-[10px] font-bold animate-pulse">
+                        RAWAN SLIPPAGE!
+                    </span>
+                    <span id="news-countdown-badge" class="bg-slate-900 border border-slate-700 text-amber-400 px-2 py-0.5 rounded text-[11px] font-bold">
+                        25 Tick
+                    </span>
+                </div>
+            </div>
+
+            <!-- Leaked Forecast / Active Impact -->
+            <div class="lg:col-span-5 flex items-center justify-between px-3 py-1.5 bg-indigo-950/20 gap-2">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span class="text-indigo-400 font-bold text-[10px] shrink-0">[INTEL MAKRO]</span>
+                    <span id="news-intel-text" class="text-indigo-200 truncate text-[11px]">
+                        Upgrade Terminal Intelijen untuk membocorkan arah berita.
+                    </span>
+                </div>
+                <button onclick="triggerInstantNews()" class="btn-term bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-[10px] px-2 py-0.5 rounded shrink-0" title="Picu rilis berita makro sekarang juga">
+                    Rilis Sekarang
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE (PAIR SWITCHER + INTERACTIVE CANVAS CHART + ORDER/QUANT PANEL) -->
+    <main id="main-ws" class="flex-1 grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-800">
+
+        <!-- LEFT & CENTER: PAIR SELECTOR + CANDLESTICK CHART + POSITIONS (8 Cols on LG) -->
+        <section id="ws-left" class="lg:col-span-8 flex flex-col justify-between bg-[#070b14]">
+
+            <!-- 1. DUAL PAIR SWITCHER TABS (XAU/USD & BTC/USD) -->
+            <div id="pair-tabs-row" class="grid grid-cols-1 sm:grid-cols-2 border-b border-slate-800 bg-[#0b1120]">
+                <!-- XAU/USD Tab -->
+                <div id="tab-pair-XAUUSD" onclick="selectPair('XAUUSD')" class="p-2.5 px-3.5 cursor-pointer border-b-2 border-amber-400 bg-amber-500/5 transition flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold font-mono text-xs">
+                            XAU
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-mono font-bold text-sm text-white">XAU/USD</span>
+                                <span class="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded">GOLD SPOT</span>
+                                <span class="text-[10px] font-mono text-slate-400">Max 1:100</span>
+                            </div>
+                            <div id="sub-XAUUSD-regime" class="text-[11px] font-mono text-slate-400">
+                                Spread: $0.40 | Swap: -0.02%/25t
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right font-mono-num">
+                        <div id="tab-price-XAUUSD" class="text-base font-bold text-amber-300">$2,650.00</div>
+                        <div id="tab-chg-XAUUSD" class="text-[11px] text-emerald-400">+0.00%</div>
+                    </div>
+                </div>
+
+                <!-- BTC/USD Tab -->
+                <div id="tab-pair-BTCUSD" onclick="selectPair('BTCUSD')" class="p-2.5 px-3.5 cursor-pointer border-b-2 border-transparent hover:bg-slate-900/60 transition flex items-center justify-between border-t sm:border-t-0 sm:border-l border-slate-800">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 font-bold font-mono text-xs">
+                            <i class="fa-brands fa-bitcoin text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-mono font-bold text-sm text-white">BTC/USD</span>
+                                <span class="text-[10px] font-mono bg-orange-500/20 text-orange-300 px-1.5 py-0.2 rounded">CRYPTO PERP</span>
+                                <span class="text-[10px] font-mono text-slate-400">Max 1:25</span>
+                            </div>
+                            <div id="sub-BTCUSD-regime" class="text-[11px] font-mono text-slate-400">
+                                Spread: $22.00 | Funding: +0.01%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right font-mono-num">
+                        <div id="tab-price-BTCUSD" class="text-base font-bold text-orange-300">$72,000.00</div>
+                        <div id="tab-chg-BTCUSD" class="text-[11px] text-emerald-400">+0.00%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. CHART TOOLBAR ROW 1: MULTI-TIMEFRAME, ZOOM/PAN & INDICATORS -->
+            <div id="chart-tb1" class="px-3 py-1.5 bg-[#0b1120] border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
+                <!-- Left: Timeframe Buttons & OHLC Telemetry -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="flex items-center bg-slate-900 border border-slate-700 rounded p-0.5">
+                        <button id="tf-M1" onclick="setTimeframe('M1')" class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold text-[10px]">M1</button>
+                        <button id="tf-M5" onclick="setTimeframe('M5')" class="px-2 py-0.5 rounded text-slate-400 hover:text-white text-[10px]">M5</button>
+                        <button id="tf-M15" onclick="setTimeframe('M15')" class="px-2 py-0.5 rounded text-slate-400 hover:text-white text-[10px]">M15</button>
+                        <button id="tf-H1" onclick="setTimeframe('H1')" class="px-2 py-0.5 rounded text-slate-400 hover:text-white text-[10px]">H1</button>
+                    </div>
+                    <span id="chart-candle-progress" class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded text-[10px]">Tick 1/10</span>
+                    <span id="chart-ohlc-readout" class="text-slate-400 hidden xl:inline text-[10px]">
+                        O: 2650.00 | H: 2651.20 | L: 2649.50 | C: 2650.40
+                    </span>
+                </div>
+
+                <!-- Right: Zoom Controls & Indicator Toggles -->
+                <div class="flex items-center gap-1 flex-wrap">
+                    <button id="btn-reset-pan" onclick="resetChartZoomPan()" class="hidden px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 text-[10px] font-bold animate-pulse">
+                        <i class="fa-solid fa-forward-fast mr-1"></i>Ke Live
+                    </button>
+                    <div class="flex items-center bg-slate-900 border border-slate-800 rounded p-0.5 mr-1">
+                        <button onclick="zoomChart(-12)" class="px-1.5 py-0.2 text-slate-300 hover:text-white" title="Zoom In (Perbesar Candle)"><i class="fa-solid fa-magnifying-glass-plus text-[10px]"></i></button>
+                        <button onclick="zoomChart(12)" class="px-1.5 py-0.2 text-slate-300 hover:text-white" title="Zoom Out (Perkecil Candle)"><i class="fa-solid fa-magnifying-glass-minus text-[10px]"></i></button>
+                    </div>
+                    <button id="ind-ema9" onclick="toggleIndicator('ema9')" class="px-2 py-0.5 rounded border border-cyan-500/50 bg-cyan-500/20 text-cyan-300 text-[10px] font-bold">
+                        EMA 9
+                    </button>
+                    <button id="ind-ema21" onclick="toggleIndicator('ema21')" class="px-2 py-0.5 rounded border border-purple-500/50 bg-purple-500/20 text-purple-300 text-[10px] font-bold">
+                        EMA 21
+                    </button>
+                    <button id="ind-bb" onclick="toggleIndicator('bb')" class="px-2 py-0.5 rounded border border-slate-700 bg-slate-900 text-slate-400 text-[10px]">
+                        BB (20,2)
+                    </button>
+                    <button id="ind-pos" onclick="toggleIndicator('posLines')" class="px-2 py-0.5 rounded border border-emerald-500/50 bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                        Garis Order
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2B. CHART TOOLBAR ROW 2: DRAWING TOOLS & DRAG SL/TP HINT -->
+            <div id="chart-tb2" class="px-3 py-1 bg-[#080d1a] border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono">
+                <div class="flex items-center gap-1 flex-wrap">
+                    <span class="text-slate-500 mr-1"><i class="fa-solid fa-pen-ruler mr-1"></i>ALAT GAMBAR:</span>
+                    <button id="tool-cursor" onclick="setDrawingTool('cursor')" class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-arrow-pointer"></i> Kursor / Geser SL-TP
+                    </button>
+                    <button id="tool-hline" onclick="setDrawingTool('hline')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1" title="Klik pada grafik untuk menaruh garis Support/Resistance horizontal">
+                        <i class="fa-solid fa-grip-lines"></i> Garis S/R
+                    </button>
+                    <button id="tool-trendline" onclick="setDrawingTool('trendline')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1" title="Klik & tarik untuk menggambar garis Trendline">
+                        <i class="fa-solid fa-slash"></i> Trendline
+                    </button>
+                    <button id="tool-rect" onclick="setDrawingTool('rect')" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1" title="Klik & tarik untuk menggambar kotak Zona Supply/Demand">
+                        <i class="fa-regular fa-square"></i> Zona S/D
+                    </button>
+                    <button onclick="undoLastDrawing()" class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300 hover:bg-slate-800" title="Hapus gambar terakhir">
+                        <i class="fa-solid fa-rotate-left"></i> Undo
+                    </button>
+                    <button onclick="clearAllDrawings()" class="px-2 py-0.5 rounded bg-rose-950/60 border border-rose-500/30 text-rose-300 hover:bg-rose-900" title="Bersihkan semua gambar di pair ini">
+                        <i class="fa-solid fa-trash-can"></i> Hapus Semua
+                    </button>
+                </div>
+                <div id="chart-interaction-hint" class="text-slate-400 hidden md:inline">
+                    <span class="text-emerald-400">Tips:</span> Seret garis <span class="text-emerald-300">TP</span> / <span class="text-rose-400">SL</span> / <span class="text-amber-300">Pending</span> langsung di atas grafik, atau gunakan roda mouse untuk Zoom.
+                </div>
+            </div>
+
+            <!-- 3. INTERACTIVE HTML5 CANVAS CANDLESTICK + RSI CHART -->
+            <div class="relative w-full bg-[#070b14] border-b border-slate-800 overflow-hidden" id="chart-container">
+                <canvas id="trading-canvas"></canvas>
+                <div class="oc" id="oc">
+                    <div class="oc-row">
+                        <button id="oc-sell" class="oc-btn oc-sell" onclick="oneClick('SHORT')"><small>SELL</small><b id="oc-bid">-</b></button>
+                        <div class="oc-lot"><button onclick="ocLot(-1)">&minus;</button><div><input id="oc-lot" type="number" inputmode="decimal" min="0.01" oninput="ocLotSet(this.value)"><small id="oc-unit">LOT</small></div><button onclick="ocLot(1)">+</button></div>
+                        <button id="oc-buy" class="oc-btn oc-buy" onclick="oneClick('LONG')"><small>BUY</small><b id="oc-ask">-</b></button>
+                        <button class="oc-gear" onclick="toggleOcPop()" title="Pengaturan 1-klik"><i class="fa-solid fa-gear"></i></button>
+                    </div>
+                    <div id="oc-confirm" class="oc-cf hidden"><span id="oc-cf-txt"></span><div class="flex gap-2"><button class="fb on" onclick="ocConfirm(true)">Konfirmasi</button><button class="fb" onclick="ocConfirm(false)">Batal</button></div></div>
+                    <div id="oc-pop" class="oc-pop hidden">
+                        <label><span>1-Klik Trading (langsung eksekusi)</span><input id="oc-chk" type="checkbox" onchange="setUI('oneClick',this.checked)"></label>
+                        <label><span>Leverage</span><select id="oc-lev" onchange="ocLev(this.value)"></select></label>
+                        <label><span>SL/TP otomatis</span><select id="oc-sltp" onchange="setUI('autoSLTP',this.value)"><option value="off">Tanpa SL/TP</option><option value="0.0025:0.005">SL 0.25% / TP 0.5%</option><option value="0.005:0.01">SL 0.5% / TP 1%</option><option value="0.01:0.02">SL 1% / TP 2%</option></select></label>
+                        <label><span>Tema</span><select id="th-sel" onchange="setTheme(this.value)"></select></label>
+                        <div class="flex gap-2"><button class="fb" onclick="toggleFocus()"><i class="fa-solid fa-chart-line"></i> Mode Fokus</button><button class="fb" onclick="toggleFullscreen()"><i class="fs-ic fa-solid fa-expand"></i> Layar penuh</button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. OPEN POSITIONS, PENDING ORDERS & TERMINAL LOG TABS -->
+            <div id="bottom-area" class="flex-1 flex flex-col bg-[#070b14]">
+                <div class="flex flex-wrap items-center justify-between px-3 py-1.5 bg-[#0b1120] border-b border-slate-800 font-mono text-xs gap-2">
+                    <div class="flex items-center gap-4">
+                        <button id="subtab-btn-pos" onclick="switchBottomTab('pos')" class="text-emerald-400 font-bold border-b-2 border-emerald-400 pb-0.5">
+                            <i class="fa-solid fa-layer-group mr-1"></i> POSISI TERBUKA (<span id="pos-tab-count">0</span>)
+                        </button>
+                        <button id="subtab-btn-pending" onclick="switchBottomTab('pending')" class="text-slate-400 hover:text-slate-200 pb-0.5">
+                            <i class="fa-solid fa-clock mr-1"></i> PENDING ORDER (<span id="pending-tab-count">0</span>)
+                        </button>
+                        <button id="subtab-btn-log" onclick="switchBottomTab('log')" class="text-slate-400 hover:text-slate-200 pb-0.5">
+                            <i class="fa-solid fa-terminal mr-1"></i> LOG EKSEKUSI
+                        </button>
+                        <button onclick="openHistory()" class="text-slate-400 hover:text-cyan-300 pb-0.5"><i class="fa-solid fa-clock-rotate-left mr-1"></i> RIWAYAT</button>
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px]">
+                        <button onclick="setAllSLToBreakeven()" class="text-cyan-400 hover:underline hidden sm:inline">
+                            [Set Semua SL ke BEP]
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab Content 1: Open Positions Table (With Partial Close & Trailing SL) -->
+                <div id="bottom-panel-pos" class="overflow-x-auto max-h-60">
+                    <table class="w-full text-left border-collapse font-mono text-xs">
+                        <thead>
+                            <tr class="bg-[#0b1120] text-slate-400 text-[10px] uppercase border-b border-slate-800">
+                                <th class="py-2 px-2">PAIR / TIPE</th>
+                                <th class="py-2 px-2 text-right">LOT &amp; LEV</th>
+                                <th class="py-2 px-2 text-right">ENTRY / PASAR</th>
+                                <th class="py-2 px-2 text-center">SL / TP (DRAG DI CHART)</th>
+                                <th class="py-2 px-2 text-center">TRAIL SL &amp; SWAP</th>
+                                <th class="py-2 px-2 text-right">FLOATING PnL</th>
+                                <th class="py-2 px-2 text-center">PARTIAL CLOSE &amp; AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-tbody" class="divide-y divide-slate-800/80">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tab Content 2: Pending Orders Table (Limit & Stop Orders) -->
+                <div id="bottom-panel-pending" class="hidden overflow-x-auto max-h-60">
+                    <table class="w-full text-left border-collapse font-mono text-xs">
+                        <thead>
+                            <tr class="bg-[#0b1120] text-slate-400 text-[10px] uppercase border-b border-slate-800">
+                                <th class="py-2 px-2.5">ID / PAIR</th>
+                                <th class="py-2 px-2.5">JENIS ORDER</th>
+                                <th class="py-2 px-2.5 text-right">UKURAN &amp; LEV</th>
+                                <th class="py-2 px-2.5 text-right">HARGA TRIGGER</th>
+                                <th class="py-2 px-2.5 text-right">JARAK KE PASAR</th>
+                                <th class="py-2 px-2.5 text-center">SL / TP / TRAIL</th>
+                                <th class="py-2 px-2.5 text-center">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pending-tbody" class="divide-y divide-slate-800/80">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tab Content 3: Execution Log -->
+                <div id="bottom-panel-log" class="hidden h-52 overflow-y-auto p-2.5 font-mono text-[11px] space-y-1 bg-[#050811]">
+                    <!-- Logs injected here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COLUMN: MARGIN ORDER EXECUTION & QUANT LAB UPGRADES (4 Cols on LG) -->
+        <aside id="order-aside" class="lg:col-span-4 flex flex-col bg-[#0b1120] divide-y divide-slate-800">
+
+            <!-- Right Panel Navigation Tabs -->
+            <div class="grid grid-cols-2 bg-[#070b14] font-mono text-xs font-bold">
+                <button id="rtab-btn-order" onclick="switchRightTab('order')" class="py-2.5 text-center border-b-2 border-emerald-400 text-emerald-400 bg-[#0b1120]">
+                    <i class="fa-solid fa-bolt mr-1"></i> TERMINAL ORDER
+                </button>
+                <button id="rtab-btn-quant" onclick="switchRightTab('quant')" class="py-2.5 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-flask mr-1"></i> LAB QUANT &amp; BOT
+                </button>
+            </div>
+
+            <!-- PANEL 1: MARGIN ORDER EXECUTION (Market, Limit, Stop + Trailing SL) -->
+            <div id="right-panel-order" class="p-3.5 space-y-3 font-mono text-xs flex-1 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <!-- Active Pair & Bid/Ask Spread Readout -->
+                    <div class="bg-[#070b14] border border-slate-800 rounded p-2.5">
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+                            <span id="order-pair-title" class="font-bold text-amber-400">XAU/USD (GOLD SPOT)</span>
+                            <span id="order-spread-label" class="text-cyan-400">Spread: $0.40</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-center font-mono-num">
+                            <div class="bg-rose-950/30 border border-rose-500/30 rounded p-1.5">
+                                <div class="text-[10px] text-rose-400">HARGA JUAL (BID)</div>
+                                <div id="order-bid-price" class="text-sm sm:text-base font-bold text-rose-300">$2,649.80</div>
+                            </div>
+                            <div class="bg-emerald-950/30 border border-emerald-500/30 rounded p-1.5">
+                                <div class="text-[10px] text-emerald-400">HARGA BELI (ASK)</div>
+                                <div id="order-ask-price" class="text-sm sm:text-base font-bold text-emerald-300">$2,650.20</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ORDER EXECUTION MODE SELECTOR (MARKET / LIMIT / STOP) -->
+                    <div class="space-y-1.5">
+                        <div class="grid grid-cols-3 bg-[#070b14] p-0.5 rounded border border-slate-800 text-[11px] font-bold">
+                            <button id="omode-MARKET" onclick="setOrderMode('MARKET')" class="py-1.5 rounded bg-emerald-500 text-slate-950 transition">
+                                MARKET
+                            </button>
+                            <button id="omode-LIMIT" onclick="setOrderMode('LIMIT')" class="py-1.5 rounded text-slate-400 hover:text-white transition">
+                                LIMIT ORDER
+                            </button>
+                            <button id="omode-STOP" onclick="setOrderMode('STOP')" class="py-1.5 rounded text-slate-400 hover:text-white transition">
+                                STOP ORDER
+                            </button>
+                        </div>
+
+                        <!-- Pending Trigger Price Box (Shown when LIMIT or STOP is active) -->
+                        <div id="pending-price-box" class="hidden bg-amber-950/20 border border-amber-500/40 rounded p-2.5 space-y-1.5">
+                            <div class="flex items-center justify-between text-[11px]">
+                                <span id="pending-mode-label" class="text-amber-300 font-bold">HARGA TRIGGER LIMIT ($):</span>
+                                <span class="text-slate-400 text-[10px]">Dapat digeser di Chart</span>
+                            </div>
+                            <input id="input-pending-price" type="number" step="any" oninput="updateOrderPreview()" class="w-full bg-[#070b14] border border-amber-500/50 rounded px-2.5 py-1 text-sm font-bold text-amber-300 focus:outline-none font-mono-num">
+                            <div class="grid grid-cols-5 gap-1 pt-0.5 text-[10px]">
+                                <button onclick="setPendingPriceOffset(-0.006)" class="btn-term bg-slate-800 hover:bg-slate-700 text-emerald-300 py-0.5 rounded">-0.6%</button>
+                                <button onclick="setPendingPriceOffset(-0.0025)" class="btn-term bg-slate-800 hover:bg-slate-700 text-emerald-300 py-0.5 rounded">-0.25%</button>
+                                <button onclick="setPendingPriceOffset(0)" class="btn-term bg-slate-700 hover:bg-slate-600 text-white py-0.5 rounded">Pasar</button>
+                                <button onclick="setPendingPriceOffset(0.0025)" class="btn-term bg-slate-800 hover:bg-slate-700 text-rose-300 py-0.5 rounded">+0.25%</button>
+                                <button onclick="setPendingPriceOffset(0.006)" class="btn-term bg-slate-800 hover:bg-slate-700 text-rose-300 py-0.5 rounded">+0.6%</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contract Size (Units / Oz / BTC) -->
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between">
+                            <label class="text-slate-300 font-semibold">Ukuran Kontrak (<span id="order-unit-name">Troy Oz</span>):</label>
+                            <span id="order-notional-val" class="text-slate-400 text-[11px]">Nilai Kontrak: $2,650</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <input id="input-order-size" type="number" step="0.1" min="0.01" value="1" oninput="updateOrderPreview()" class="w-full bg-[#070b14] border border-slate-700 rounded px-2.5 py-1.5 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 font-mono-num">
+                            <button onclick="setMarginAllocation(0.10)" class="btn-term bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded text-[11px]">10%</button>
+                            <button onclick="setMarginAllocation(0.25)" class="btn-term bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded text-[11px]">25%</button>
+                            <button onclick="setMarginAllocation(0.50)" class="btn-term bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded text-[11px]">50%</button>
+                            <button onclick="setMarginAllocation(0.90)" class="btn-term bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 px-2 py-1.5 rounded text-[11px] font-bold">MAX</button>
+                        </div>
+                    </div>
+
+                    <!-- Leverage Slider -->
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between">
+                            <label class="text-slate-300 font-semibold">Leverage Margin:</label>
+                            <span id="lbl-leverage" class="bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold px-2 py-0.5 rounded text-xs">1 : 20</span>
+                        </div>
+                        <input id="slider-leverage" type="range" min="1" max="100" step="1" value="20" oninput="onLeverageChange(this.value)" class="w-full accent-amber-400 h-1.5 bg-slate-800 rounded cursor-pointer">
+                        <div id="leverage-presets" class="flex items-center justify-between gap-1 pt-0.5">
+                            <!-- Preset buttons populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Stop Loss (SL), Take Profit (TP) & Trailing Stop Configurator -->
+                    <div class="bg-[#070b14] border border-slate-800 rounded p-2.5 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300 font-semibold text-[11px]">PROTEKSI SL, TP &amp; TRAILING OTOMATIS</span>
+                            <button onclick="clearSLTPInputs()" class="text-[10px] text-slate-400 hover:text-white">[Reset]</button>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <div>
+                                <label class="text-[10px] text-rose-400 block mb-0.5">STOP LOSS ($)</label>
+                                <input id="input-sl" type="number" step="any" placeholder="Opsional" class="w-full bg-[#0b1120] border border-rose-500/40 rounded px-2 py-1 text-xs text-rose-300 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-emerald-400 block mb-0.5">TAKE PROFIT ($)</label>
+                                <input id="input-tp" type="number" step="any" placeholder="Opsional" class="w-full bg-[#0b1120] border border-emerald-500/40 rounded px-2 py-1 text-xs text-emerald-300 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-cyan-400 block mb-0.5" title="Jarak Trailing Stop otomatis dalam Dolar ($)">TRAIL SL ($)</label>
+                                <input id="input-trail" type="number" step="any" placeholder="Off" class="w-full bg-[#0b1120] border border-cyan-500/40 rounded px-2 py-1 text-xs text-cyan-300 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <!-- 1-Click Auto SL/TP & Trailing Generators -->
+                        <div class="flex items-center justify-between gap-1 pt-0.5 flex-wrap">
+                            <button onclick="applyQuickSLTP('LONG', 0.005, 0.01)" class="btn-term bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/30 text-emerald-300 px-1.5 py-0.5 rounded text-[10px]" title="Set SL -0.5% & TP +1.0% untuk posisi LONG">
+                                Long 1:2
+                            </button>
+                            <button onclick="applyQuickSLTP('SHORT', 0.005, 0.01)" class="btn-term bg-rose-950/60 hover:bg-rose-900 border border-rose-500/30 text-rose-300 px-1.5 py-0.5 rounded text-[10px]" title="Set SL +0.5% & TP -1.0% untuk posisi SHORT">
+                                Short 1:2
+                            </button>
+                            <button onclick="setQuickTrailPreset(0.004)" class="btn-term bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/30 text-cyan-300 px-1.5 py-0.5 rounded text-[10px]" title="Aktifkan Trailing Stop jarak 0.4% dari harga">
+                                +Trail 0.4%
+                            </button>
+                            <button onclick="setQuickTrailPreset(0.008)" class="btn-term bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/30 text-cyan-300 px-1.5 py-0.5 rounded text-[10px]" title="Aktifkan Trailing Stop jarak 0.8% dari harga">
+                                +Trail 0.8%
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pre-Trade Telemetry Summary -->
+                    <div class="bg-[#070b14] border border-slate-800 rounded p-2.5 space-y-1 text-[11px]">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Margin Dibutuhkan:</span>
+                            <span id="preview-req-margin" class="text-cyan-300 font-bold">$132.50</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Biaya Spread &amp; Est. Slippage:</span>
+                            <span id="preview-spread-cost" class="text-amber-300">$0.40 (Slippage 0%)</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">Est. Likuidasi (LONG / SHORT):</span>
+                            <span id="preview-liq-price" class="text-orange-400 font-semibold">$2,520 / $2,780</span>
+                        </div>
+                    </div>
+
+                    <!-- BIG BUY/LONG & SELL/SHORT EXECUTION BUTTONS -->
+                    <div class="grid grid-cols-2 gap-2.5 pt-0.5">
+                        <button onclick="executeOrder('LONG')" class="btn-term bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold py-2.5 px-3 rounded-lg shadow-lg shadow-emerald-950/50 flex flex-col items-center justify-center">
+                            <div class="flex items-center gap-1 text-xs sm:text-sm tracking-wide">
+                                <i class="fa-solid fa-arrow-trend-up"></i> <span id="btn-long-title">BUY / LONG</span>
+                            </div>
+                            <span id="btn-long-sub" class="text-[10px] font-mono opacity-85 mt-0.5">@ $2,650.20</span>
+                        </button>
+
+                        <button onclick="executeOrder('SHORT')" class="btn-term bg-gradient-to-b from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg shadow-rose-950/50 flex flex-col items-center justify-center">
+                            <div class="flex items-center gap-1 text-xs sm:text-sm tracking-wide">
+                                <i class="fa-solid fa-arrow-trend-down"></i> <span id="btn-short-title">SELL / SHORT</span>
+                            </div>
+                            <span id="btn-short-sub" class="text-[10px] font-mono opacity-90 mt-0.5">@ $2,649.80</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Prop-Firm Rules Footer Note -->
+                <div class="bg-[#070b14] border border-slate-800/80 rounded p-2 text-[11px] text-slate-400 space-y-0.5">
+                    <div class="flex items-center justify-between text-amber-300 font-bold">
+                        <span><i class="fa-solid fa-trophy mr-1"></i> ATURAN PROP-FIRM v2.0</span>
+                        <span id="prop-split-label">Bagi Hasil: 20%</span>
+                    </div>
+                    <p class="leading-snug text-[10px]">
+                        Gunakan <b>Partial Close (25%-75%)</b> untuk mengunci profit bertahap &amp; seret garis <b>SL/TP</b> di chart untuk manajemen risiko presisi.
+                    </p>
+                </div>
+            </div>
+
+            <!-- PANEL 2: QUANT LAB & INFRASTRUCTURE UPGRADES (Hidden initially) -->
+            <div id="right-panel-quant" class="hidden p-3.5 space-y-2.5 font-mono text-xs flex-1 overflow-y-auto">
+                <div class="bg-amber-500/10 border border-amber-500/30 rounded p-2.5 flex items-center justify-between">
+                    <div>
+                        <div class="text-[10px] text-amber-300 font-bold">SALDO DOMPET PROFIT &amp; MODAL</div>
+                        <div class="text-[11px] text-slate-300">Upgrade dibeli memakai Dompet Profit (atau Saldo Aman).</div>
+                    </div>
+                    <div id="quant-wallet-display" class="text-sm font-bold text-amber-400">$0.00</div>
+                </div>
+
+                <!-- Upgrade 1: ECN Raw Spread -->
+                <div class="bg-[#070b14] border border-slate-800 rounded p-2.5 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-cyan-400"><i class="fa-solid fa-network-wired mr-1"></i> AKUN ECN RAW SPREAD</span>
+                        <span id="upg-spread-lvl" class="bg-slate-800 text-cyan-300 text-[10px] px-1.5 py-0.5 rounded">LVL 0 / 5</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">
+                        Memangkas selisih harga Bid/Ask pada XAU/USD dan BTC/USD sebesar <b>15% per level</b> (Maks -75%).
+                    </p>
+                    <button onclick="buyQuantUpgrade('rawSpread')" class="btn-term w-full bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 py-1.5 px-3 rounded flex items-center justify-between">
+                        <span>Upgrade Likuiditas ECN</span>
+                        <span id="cost-upg-spread" class="font-bold">$350.00</span>
+                    </button>
+                </div>
+
+                <!-- Upgrade 2: Co-Location Server HFT (Anti-Slippage) -->
+                <div class="bg-[#070b14] border border-slate-800 rounded p-2.5 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-purple-400"><i class="fa-solid fa-server mr-1"></i> SERVER CO-LOCATION (ANTI-SLIPPAGE)</span>
+                        <span id="upg-coloc-lvl" class="bg-slate-800 text-purple-300 text-[10px] px-1.5 py-0.5 rounded">LVL 0 / 5</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">
+                        Meredam efek <b>Slippage Berita Makro</b> pada Market Order, Pending Order &amp; Stop Loss sebesar <b>20% per level</b> (Maks -100% Zero Slippage).
+                    </p>
+                    <button onclick="buyQuantUpgrade('coLocation')" class="btn-term w-full bg-purple-950/80 hover:bg-purple-900 border border-purple-500/40 text-purple-300 py-1.5 px-3 rounded flex items-center justify-between">
+                        <span>Sewa Fiber Co-Location</span>
+                        <span id="cost-upg-coloc" class="font-bold">$400.00</span>
+                    </button>
+                </div>
+
+                <!-- Upgrade 3: Macro Intelligence Terminal -->
+                <div class="bg-[#070b14] border border-slate-800 rounded p-2.5 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-indigo-400"><i class="fa-solid fa-satellite-dish mr-1"></i> TERMINAL INTELIJEN MAKRO</span>
+                        <span id="upg-intel-lvl" class="bg-slate-800 text-indigo-300 text-[10px] px-1.5 py-0.5 rounded">LVL 0 / 3</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">
+                        Membocorkan konsensus arah lonjakan berita (Bullish / Bearish) sebelum hitung mundur berita mencapai 0.
+                    </p>
+                    <button onclick="buyQuantUpgrade('macroIntel')" class="btn-term w-full bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 py-1.5 px-3 rounded flex items-center justify-between">
+                        <span>Upgrade Satelit Makro</span>
+                        <span id="cost-upg-intel" class="font-bold">$500.00</span>
+                    </button>
+                </div>
+
+                <!-- Upgrade 4: Auto-RSI Quant Scalper Bot -->
+                <div class="bg-[#070b14] border border-slate-800 rounded p-2.5 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-emerald-400"><i class="fa-solid fa-robot mr-1"></i> BOT QUANT AUTO-RSI</span>
+                            <span id="upg-bot-lvl" class="bg-slate-800 text-emerald-300 text-[10px] px-1.5 py-0.5 rounded ml-1">LVL 0 / 5</span>
+                        </div>
+                        <button id="btn-toggle-quantbot" onclick="toggleQuantBot()" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                            OFF
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-400">
+                        Menjalankan algoritma *scalping* otomatis saat RSI menyentuh titik jenuh (&lt;32 atau &gt;68) dan menyetor imbal hasil setiap candle.
+                    </p>
+                    <button onclick="buyQuantUpgrade('quantBot')" class="btn-term w-full bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 py-1.5 px-3 rounded flex items-center justify-between">
+                        <span>Upgrade Algoritma RSI</span>
+                        <span id="cost-upg-bot" class="font-bold">$600.00</span>
+                    </button>
+                </div>
+
+                <!-- Upgrade 5: Margin Call Shield -->
+                <div class="bg-[#070b14] border border-slate-800 rounded p-2.5 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-amber-400"><i class="fa-solid fa-shield-halved mr-1"></i> PERISAI MARGIN DARURAT</span>
+                        <span id="upg-shield-lvl" class="bg-slate-800 text-amber-300 text-[10px] px-1.5 py-0.5 rounded">LVL 0 / 3</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">
+                        Menurunkan batas likuidasi paksa (*Margin Call*) dari <b>50%</b> hingga ke <b>25%</b> agar posisi tahan terhadap *stop-hunt wick*.
+                    </p>
+                    <button onclick="buyQuantUpgrade('marginShield')" class="btn-term w-full bg-amber-950/80 hover:bg-amber-900 border border-amber-500/40 text-amber-300 py-1.5 px-3 rounded flex items-center justify-between">
+                        <span>Perkuat Perisai Margin</span>
+                        <span id="cost-upg-shield" class="font-bold">$450.00</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- FOCUS POSITIONS (MT5 Trade tab) -->
+    <div id="fpos" class="focus-only">
+        <div class="flex items-center gap-3 px-3 py-1.5 text-[11px] cursor-pointer select-none" onclick="toggleFocusPos()">
+            <b class="text-emerald-400"><i class="fa-solid fa-layer-group mr-1"></i>Posisi Terbuka</b><span id="fp-sum" class="text-slate-400"></span>
+            <span class="flex-1"></span>
+            <span class="text-slate-500 hidden sm:inline">Equity <b id="fp-eq" class="text-slate-200"></b></span>
+            <span class="text-slate-500 hidden sm:inline">Margin <b id="fp-ml" class="text-slate-200"></b></span>
+            <b id="fp-pnl"></b>
+            <button class="fb" onclick="event.stopPropagation();closeAllPositions()">Tutup Semua</button>
+            <i class="fa-solid fa-chevron-down text-slate-500"></i>
+        </div>
+        <div class="fp-scroll"><table><thead><tr><th>Simbol</th><th>Tipe</th><th>Lot</th><th>Harga Open</th><th class="hs">S/L</th><th class="hs">T/P</th><th>Harga</th><th>Profit</th><th></th></tr></thead><tbody id="fp-body"></tbody></table></div>
+    </div>
+    <div id="toast"></div>
+
+    <!-- FOOTER STATUS BAR -->
+    <footer class="border-t border-slate-800 bg-[#0b1120] px-3 py-1.5 text-[11px] font-mono text-slate-400 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+            <span class="bg-emerald-500 text-slate-950 font-bold px-1.5 py-0.2 rounded text-[10px]">ENGINE v2.0 ONLINE</span>
+            <span>MODEL: <b class="text-slate-200">MULTI-TF + DRAG SL/TP + PENDING</b></span>
+            <span class="hidden sm:inline text-slate-700">|</span>
+            <span class="hidden sm:inline">TOTAL SWAP/FUNDING: <b id="footer-swap-total" class="text-purple-300">$0.00</b></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span>WIN RATE: <b id="footer-winrate" class="text-cyan-300">0% (0/0)</b></span>
+            <span>PROFIT REALISASI: <b id="footer-realized" class="text-emerald-400">$0.00</b></span>
+            <button onclick="openSaveModal()" class="text-cyan-400 hover:underline">[Backup Base64]</button>
+        </div>
+    </footer>
+
+    <div id="share-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3" onclick="if(event.target===this)closeModal('share-modal')">
+        <div class="bg-[#0b1120] border border-slate-700 rounded-lg w-full max-w-xl p-3 space-y-2 font-mono text-xs">
+            <div class="flex justify-between"><b class="text-white"><i class="fa-solid fa-share-nodes text-cyan-400 mr-1"></i> BAGIKAN HASIL</b><button onclick="closeModal('share-modal')" class="text-slate-400 hover:text-white">[X]</button></div>
+            <canvas id="sh-canvas" class="w-full rounded border border-slate-800"></canvas>
+            <input id="sh-link" readonly onfocus="this.select()" class="w-full bg-[#070b14] border border-slate-700 rounded px-2 py-1.5 text-cyan-300">
+            <div class="flex flex-wrap gap-2"><button class="fb on" onclick="copyShareLink()">Salin tautan</button><button class="fb" onclick="downloadShareImage()">Unduh gambar</button><button class="fb" onclick="nativeShare()">Bagikan…</button></div>
+            <p id="sh-msg" class="text-slate-500 text-[11px]">Tautan memuat seed + ringkasan hasil. Teman bisa melihatnya dan mencoba seed yang sama. Tidak ada data yang dikirim ke server.</p>
+        </div>
+    </div>
+    <div id="shared-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3" onclick="if(event.target===this)closeModal('shared-modal')">
+        <div class="bg-[#0b1120] border border-slate-700 rounded-lg w-full max-w-sm p-4 space-y-2 font-mono text-xs">
+            <b class="text-white"><i class="fa-solid fa-trophy text-amber-400 mr-1"></i> HASIL YANG DIBAGIKAN</b>
+            <div id="shd-body" class="space-y-1 text-slate-300"></div>
+            <div class="flex gap-2 pt-1"><button class="fb on" onclick="useSharedSeed()">Coba seed ini</button><button class="fb" onclick="closeModal('shared-modal')">Tutup</button></div>
+        </div>
+    </div>
+    <!-- MODAL: RIWAYAT -->
+    <div id="hist-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3" onclick="if(event.target===this)closeModal('hist-modal')">
+        <div class="bg-[#0b1120] border border-slate-700 rounded-lg w-full max-w-4xl max-h-[90dvh] flex flex-col font-mono text-xs">
+            <div class="flex items-center justify-between p-3 border-b border-slate-800"><b class="text-white"><i class="fa-solid fa-clock-rotate-left text-cyan-400 mr-1"></i> RIWAYAT TRADING <span id="h-mode" class="ml-1 text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded"></span></b><button onclick="closeModal('hist-modal')" class="text-slate-400 hover:text-white">[X]</button></div>
+            <div id="h-stats" class="grid grid-cols-3 sm:grid-cols-6 gap-2 p-3 border-b border-slate-800"></div>
+            <div class="flex items-center gap-2 p-2 border-b border-slate-800">
+                <select id="h-filter" onchange="renderHistory()" class="bg-[#070b14] border border-slate-700 rounded px-2 py-1 text-slate-200"><option value="all">Semua</option><option value="XAUUSD">XAU/USD</option><option value="BTCUSD">BTC/USD</option><option value="win">Profit</option><option value="loss">Loss</option></select>
+                <span class="flex-1"></span>
+                <button onclick="exportHistory()" class="fb"><i class="fa-solid fa-file-csv"></i> CSV</button>
+                <button id="h-clear" onclick="clearHistory()" class="fb">Hapus Riwayat</button>
+            </div>
+            <div class="overflow-auto"><table class="w-full whitespace-nowrap"><thead class="sticky top-0 bg-[#0b1120] text-slate-500 text-[10px]"><tr><th class="text-left py-1.5 px-2 hidden sm:table-cell">WAKTU</th><th class="text-left py-1.5 px-2">PAIR</th><th class="text-left py-1.5 px-2">TIPE</th><th class="text-right py-1.5 px-2">LOT</th><th class="text-right py-1.5 px-2">OPEN</th><th class="text-right py-1.5 px-2">CLOSE</th><th class="text-right py-1.5 px-2">PROFIT</th><th class="text-right py-1.5 px-2">ALASAN</th></tr></thead><tbody id="h-body" class="divide-y divide-slate-800/70"></tbody></table></div>
+        </div>
+    </div>
+    <!-- MODAL: MODE AKUN -->
+    <div id="acct-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3" onclick="if(event.target===this)closeModal('acct-modal')">
+        <div class="bg-[#0b1120] border border-slate-700 rounded-lg w-full max-w-md p-4 space-y-3 font-mono text-xs">
+            <div class="flex items-center justify-between"><b class="text-white"><i class="fa-solid fa-wallet text-amber-400 mr-1"></i> MODE AKUN &amp; SALDO AWAL</b><button onclick="closeModal('acct-modal')" class="text-slate-400 hover:text-white">[X]</button></div>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="am-prop" onclick="pickMode('prop')" class="fb py-2">Prop-Firm<br><small class="font-normal">Target &amp; max drawdown</small></button>
+                <button id="am-own" onclick="pickMode('own')" class="fb py-2">Modal Sendiri<br><small class="font-normal">Bebas, 100% profit milikmu</small></button>
+            </div>
+            <div id="am-own-box" class="hidden space-y-2">
+                <label class="block text-slate-300 font-bold">Saldo awal ($)</label>
+                <input id="am-bal" type="number" min="10" step="any" class="w-full bg-[#070b14] border border-slate-700 rounded px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-amber-400">
+                <div class="flex flex-wrap gap-1.5" id="am-presets"></div>
+            </div>
+            <p id="am-note" class="text-slate-400 leading-relaxed text-[11px]"></p>
+            <button id="am-apply" onclick="applyMode()" class="btn-term w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded">Terapkan</button>
+        </div>
+    </div>
+
+    <!-- MODAL 1: SAVE / EXPORT / IMPORT BASE64 -->
+    <div id="save-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-[#0b1120] border border-slate-700 rounded-lg max-w-lg w-full p-5 shadow-2xl space-y-4 font-mono">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-database text-cyan-400"></i>
+                    <h3 class="text-sm font-bold text-white uppercase">DATA SAVE SERVERLESS (LOCALSTORAGE &amp; BASE64)</h3>
+                </div>
+                <button onclick="closeSaveModal()" class="text-slate-400 hover:text-white text-sm">[X]</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <p class="text-slate-400 leading-relaxed">
+                    Seluruh data akun Prop-Firm, 320+ riwayat candlestick M1, Pending Order, serta gambar garis teknikal disimpan otomatis di browser Anda.
+                </p>
+
+                <textarea id="base64-box" rows="3" class="w-full bg-[#070b14] border border-slate-700 rounded p-2 text-[11px] text-emerald-300 focus:outline-none select-all" placeholder="Kode Base64..."></textarea>
+
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="copyBase64Save()" class="btn-term flex-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 px-3 rounded">
+                        <i class="fa-regular fa-copy mr-1"></i> Salin Kode (Export)
+                    </button>
+                    <button onclick="importBase64Save()" class="btn-term flex-1 bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-2 px-3 rounded">
+                        <i class="fa-solid fa-file-import mr-1"></i> Muat Kode (Import)
+                    </button>
+                </div>
+
+                <div id="modal-save-msg" class="hidden text-center py-1.5 px-2 rounded font-bold"></div>
+
+                <hr class="border-slate-800 my-2">
+
+                <div class="bg-rose-950/30 border border-rose-500/30 rounded p-3 flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-rose-300 font-bold">Hard Reset Seluruh Progres</div>
+                        <div class="text-[11px] text-slate-400">Kembalikan ke Tier 1 ($10.000) dan hapus seluruh upgrade &amp; gambar.</div>
+                    </div>
+                    <button id="btn-hard-reset" onclick="confirmHardReset()" class="btn-term bg-rose-700 hover:bg-rose-600 text-white font-bold px-3 py-1.5 rounded shrink-0">
+                        Hard Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: SEEDED MARKET GENERATOR -->
+    <div id="seed-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-[#0b1120] border border-slate-700 rounded-lg max-w-md w-full p-5 shadow-2xl space-y-4 font-mono">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-seedling text-emerald-400"></i>
+                    <h3 class="text-sm font-bold text-white uppercase">GENERATOR SEED PASAR (PRNG)</h3>
+                </div>
+                <button onclick="closeSeedModal()" class="text-slate-400 hover:text-white text-sm">[X]</button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <p class="text-slate-400 leading-relaxed">
+                    Masukkan kode <b>Seed</b> yang sama dengan teman Anda untuk menghasilkan urutan grafik candlestick <code class="text-amber-300">XAU/USD</code> &amp; <code class="text-orange-300">BTC/USD</code> serta kejutan berita yang 100% identik tanpa server!
+                </p>
+                <div>
+                    <label class="text-slate-300 font-bold block mb-1">Kode Seed Pasar:</label>
+                    <input id="input-seed-str" type="text" maxlength="24" value="QUANT-2026" class="w-full bg-[#070b14] border border-slate-700 rounded px-3 py-2 text-sm text-cyan-300 font-bold uppercase focus:outline-none focus:border-cyan-400">
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="applyNewSeed()" class="btn-term flex-1 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 px-3 rounded">
+                        Terapkan Seed &amp; Sinkronkan Grafik
+                    </button>
+                    <button onclick="randomizeSeedInput()" class="btn-term bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 px-3 rounded">
+                        Acak
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT QUANT TRADING ENGINE v2.0 -->
+    
+<script src="js/core.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/history.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/render.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/persist.js"></script>
+<script src="js/ui-focus.js"></script>
+<script src="js/ui-theme.js"></script>
+<script src="js/ui-account.js"></script>
+<script src="js/ui-share.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
