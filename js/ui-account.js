@@ -7,13 +7,13 @@ const OWN=OWN_TIER,isOwn=()=>state.tierIndex===OWN_TIER_INDEX;
 window.closeModal=id=>g(id).classList.add('hidden');
 
 /* --- Ganti mode akun (akun lain tetap tersimpan) --- */
-const FLD=['tierIndex','balance','wallet','realizedPnL','wins','totalTrades','positions','pendingOrders','history','upgrades','quantBotActive','totalSwapPaid'];
+const FLD=['tierIndex','balance','wallet','realizedPnL','wins','totalTrades','positions','pendingOrders','history','upgrades','quantBotActive','totalSwapPaid','deposited','withdrawn','ledger'];
 function setAccount(m,bal){
   const cur=isOwn()?'own':'prop';state.acct=state.acct||{};
   if(m!==cur)state.acct[cur]=Object.fromEntries(FLD.map(k=>[k,state[k]]));
   const sv=m!==cur&&state.acct[m];
   if(sv){FLD.forEach(k=>state[k]=sv[k]);delete state.acct[m]}
-  else{Object.assign(state,{balance:0,wallet:0,realizedPnL:0,wins:0,totalTrades:0,positions:[],pendingOrders:[],history:[],quantBotActive:false,totalSwapPaid:0,upgrades:{rawSpread:0,coLocation:0,macroIntel:0,quantBot:0,marginShield:0},tierIndex:m==='own'?4:0});
+  else{Object.assign(state,{balance:0,wallet:0,realizedPnL:0,wins:0,totalTrades:0,positions:[],pendingOrders:[],history:[],deposited:0,withdrawn:0,ledger:[],quantBotActive:false,totalSwapPaid:0,upgrades:{rawSpread:0,coLocation:0,macroIntel:0,quantBot:0,marginShield:0},tierIndex:m==='own'?4:0});
     if(m==='own'){state.ownStart=bal;state.balance=bal}else state.balance=PROP_TIERS[0].startBalance}
   saveGameState();renderAll();say(m==='own'?'Akun Modal Sendiri aktif: '+fmtUSD(OWN.startBalance,0):'Akun Prop-Firm aktif');
 }
@@ -21,7 +21,7 @@ let pick='prop',armed=false;
 const NOTE={prop:'Prop-Firm: capai target equity untuk naik tier, tetapi akun di-reset jika menyentuh batas max drawdown. Bagi hasil sesuai tier.',own:'Modal Sendiri: tanpa target & batas drawdown prop, profit 100% milikmu, tanpa bonus tier. Upgrade Lab Quant dibayar dari saldo. Akun Prop-Firm tetap tersimpan dan bisa dilanjutkan. Memulai akun modal sendiri baru akan menghapus akun modal sendiri & riwayatnya yang lama.'};
 window.pickMode=m=>{pick=m;armed=false;g('am-prop').className='fb py-2'+(m==='prop'?' on':'');g('am-own').className='fb py-2'+(m==='own'?' on':'');
   g('am-own-box').classList.toggle('hidden',m!=='own');g('am-note').textContent=NOTE[m];g('am-apply').textContent='Terapkan'};
-window.openAcct=()=>{g('am-bal').value=state.ownStart||1000;g('am-presets').innerHTML=[100,500,1000,5000,10000,100000].map(v=>`<button class="fb" onclick="document.getElementById('am-bal').value=${v}">${fmtUSD(v,0)}</button>`).join('');pickMode(isOwn()?'own':'prop');g('acct-modal').classList.remove('hidden')};
+window.openAcct=()=>{g('am-cash').classList.toggle('hidden',!isOwn());g('am-bal').value=state.ownStart||1000;g('am-presets').innerHTML=[100,500,1000,5000,10000,100000].map(v=>`<button class="fb" onclick="document.getElementById('am-bal').value=${v}">${fmtUSD(v,0)}</button>`).join('');pickMode(isOwn()?'own':'prop');g('acct-modal').classList.remove('hidden')};
 window.applyMode=()=>{
   const cur=isOwn()?'own':'prop';
   if(pick==='own'){const b=parseFloat(g('am-bal').value);if(!(b>=10&&b<=1e9)){say('Saldo awal harus antara $10 dan $1.000.000.000');return}
@@ -51,11 +51,11 @@ window.clearHistory=()=>{const b=g('h-clear');if(b.textContent!=='Yakin? Klik la
 /* --- Sinkron tampilan KPI sesuai mode --- */
 function modeSync(){
   const own=isOwn(),T=PROP_TIERS[state.tierIndex],tt=g('kpi-target-text'),lab=tt.parentElement.previousElementSibling.firstElementChild,rb=document.querySelector('button[onclick="resetPropChallenge()"]');
-  const tb=g('tier-badge');tb.style.cursor='pointer';tb.onclick=openAcct;tb.title='Klik untuk ganti mode akun';
+  g('btn-cash').classList.toggle('hidden',!own);const tb=g('tier-badge');tb.style.cursor='pointer';tb.onclick=openAcct;tb.title='Klik untuk ganti mode akun';
   lab.textContent=own?'MODAL SENDIRI':'TARGET LULUS TIER';rb.textContent=own?'[Reset Akun]':'[Reset Ujian]';
   if(!own){g('kpi-target-pct').className='text-emerald-400';return}
-  const roi=(getAccountMetrics().equity-T.startBalance)/T.startBalance*100;
-  tt.textContent='Modal Awal: '+fmtUSD(T.startBalance,0);g('kpi-target-pct').textContent=(roi>=0?'+':'')+roi.toFixed(1)+'%';g('kpi-target-pct').className=roi>=0?'text-emerald-400':'text-rose-400';
+  const P=ownPerformance(),roi=P.roi;
+  tt.textContent='Modal: '+fmtUSD(P.invested,0)+(P.withdrawn?' · Tarik '+fmtUSD(P.withdrawn,0):'');g('kpi-target-pct').textContent=(roi>=0?'+':'')+roi.toFixed(1)+'%';g('kpi-target-pct').className=roi>=0?'text-emerald-400':'text-rose-400';
   g('kpi-target-bar').style.width=Math.max(0,Math.min(100,roi))+'%';g('kpi-drawdown-floor').textContent='Tanpa batas drawdown prop';g('prop-split-label').textContent='Profit: 100% milikmu';
 }
 window.uiAfterRender=function(){try{modeSync()}catch(e){}};

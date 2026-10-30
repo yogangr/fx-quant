@@ -39,7 +39,6 @@ function applyUI(){
 }
 window.toggleFocus=()=>{ui.focus=!ui.focus;save();applyUI()};
 window.toggleFocusPos=()=>{ui.posCollapsed=!ui.posCollapsed;save();applyUI()};
-window.cycleSpeed=()=>{const o=[1,2,5,0];setSimSpeed(o[(o.indexOf(simSpeed)+1)%4])};
 window.focusClose=(id,fr)=>closePositionById(id,fr<1?'PARTIAL':'MANUAL',fr);
 
 window.toggleFullscreen=()=>{
@@ -75,11 +74,11 @@ function syncUI(){
   if(levKey!==id+cur){levKey=id+cur;g('oc-lev').innerHTML=[...new Set([...c.presetLeverages,+cur])].sort((a,b)=>a-b).map(v=>`<option value="${v}">1:${v}</option>`).join('');g('oc-lev').value=cur}
   ['XAUUSD','BTCUSD'].forEach(p=>{g('fp-'+p).className='fb'+(p===id?' on':'');g('fp-px-'+p).textContent=state.markets[p].price.toLocaleString('en-US',{maximumFractionDigits:2})});
   ['M1','M5','M15','H1'].forEach(t=>g('ftf-'+t).className='fb'+(t===activeTimeframe?' on':''));
-  g('fspd').textContent=simSpeed===0?'⏸':simSpeed+'x';
+  g('fspd').value=String(simSpeed);
   renderFocusPos();
 }
 window.uiSyncOrder=function(){try{syncUI()}catch(e){}};
-window.uiSyncSpeed=function(){try{g('fspd').textContent=simSpeed===0?'⏸':simSpeed+'x'}catch(e){}};
+window.uiSyncSpeed=function(){try{g('fspd').value=String(simSpeed)}catch(e){}};
 
 /* Responsif: chart ikut ukuran container + sentuhan (geser & cubit) */
 const cv=g('trading-canvas');

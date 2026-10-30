@@ -39,7 +39,7 @@ applyTheme(p);if(mq&&mq.addEventListener)mq.addEventListener('change',function()
         <span class="flex-1"></span>
         <button class="fb" onclick="zoomChart(-12)"><i class="fa-solid fa-magnifying-glass-plus"></i></button><button class="fb" onclick="zoomChart(12)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
         <button class="fb" onclick="resetChartZoomPan()" title="Ke candle terbaru"><i class="fa-solid fa-forward-fast"></i></button>
-        <button id="fspd" class="fb" onclick="cycleSpeed()" title="Kecepatan / Pause">1x</button>
+        <select id="fspd" class="fb" onchange="setSimSpeed(Number(this.value))" title="Kecepatan waktu pasar"></select>
         <button class="fb" onclick="toggleFullscreen()"><i class="fs-ic fa-solid fa-expand"></i></button>
         <button class="fb" onclick="openHistory()" title="Riwayat"><i class="fa-solid fa-clock-rotate-left"></i></button><button class="fb" onclick="openAcct()" title="Mode akun"><i class="fa-solid fa-wallet"></i></button>
         <button class="fb" onclick="cycleTheme()" title="Ganti tema"><i class="fa-solid fa-palette"></i></button>
@@ -74,25 +74,20 @@ applyTheme(p);if(mq&&mq.addEventListener)mq.addEventListener('change',function()
             <!-- Speed, Manual Tick, Audio & Save Controls -->
             <div class="flex items-center gap-1.5 flex-wrap">
                 <div class="font-mono text-[11px] text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
-                    TICK #<span id="ui-tick-count" class="text-slate-200 font-bold">1</span>
+                    <i class="fa-regular fa-clock mr-1"></i><span id="ui-tick-count" class="text-slate-200 font-bold" title="Waktu pasar sejak sesi dimulai">Hari 1 00:00:00</span>
                 </div>
 
                 <!-- Speed Selector -->
-                <div class="flex items-center bg-slate-900 border border-slate-800 rounded p-0.5 font-mono text-[11px]">
-                    <button id="spd-0" onclick="setSimSpeed(0)" class="px-2 py-0.5 rounded text-slate-400 hover:text-white" title="Pause">
-                        <i class="fa-solid fa-pause"></i>
-                    </button>
-                    <button id="spd-1" onclick="setSimSpeed(1)" class="px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-bold" title="1x (500ms/tick)">1x</button>
-                    <button id="spd-2" onclick="setSimSpeed(2)" class="px-2 py-0.5 rounded text-slate-400 hover:text-white" title="2x (250ms/tick)">2x</button>
-                    <button id="spd-5" onclick="setSimSpeed(5)" class="px-2 py-0.5 rounded text-slate-400 hover:text-white" title="5x Turbo (100ms/tick)">5x</button>
-                </div>
+                <select id="spd-select" onchange="setSimSpeed(Number(this.value))" title="Kecepatan waktu pasar. 1x = waktu nyata: candle M1 = 1 menit sungguhan, M5 = 5 menit, H1 = 1 jam." class="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 font-mono text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400"></select>
 
-                <button onclick="manualStepTick()" class="btn-term bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 font-mono text-[11px] px-2 py-0.5 rounded" title="Majukan 1 Tick Pasar">
-                    <i class="fa-solid fa-forward-step text-[10px]"></i> +1 Tick
+                <button onclick="manualStepTick()" class="btn-term bg-indigo-950/90 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 font-mono text-[11px] px-2 py-0.5 rounded" title="Lompat 1 menit waktu pasar">
+                    <i class="fa-solid fa-forward-step text-[10px]"></i> +1 Menit
                 </button>
 
+                <button onclick="startTour()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Tutorial singkat"><i class="fa-solid fa-circle-question text-amber-400"></i></button>
                 <button onclick="openShare()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Bagikan hasil (tautan / gambar)"><i class="fa-solid fa-share-nodes text-cyan-400"></i> <span class="hidden sm:inline">Bagikan</span></button>
                 <button onclick="openHistory()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Riwayat trading (tekan H)"><i class="fa-solid fa-clock-rotate-left text-cyan-400"></i> <span class="hidden sm:inline">Riwayat</span></button>
+                <button id="btn-cash" onclick="openCash()" class="hidden btn-term bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] px-2 py-0.5 rounded" title="Setor / tarik saldo"><i class="fa-solid fa-money-bill-transfer"></i> <span class="hidden sm:inline">Setor/Tarik</span></button>
                 <button onclick="openAcct()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Mode akun &amp; saldo awal"><i class="fa-solid fa-wallet text-amber-400"></i> <span class="hidden sm:inline">Akun</span></button>
                 <button onclick="cycleTheme()" class="btn-term bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] px-2 py-0.5 rounded" title="Ganti tema (tekan T)"><i class="fa-solid fa-palette"></i></button>
                 <button onclick="toggleFocus()" class="btn-term bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-mono text-[11px] px-2 py-0.5 rounded" title="Mode Fokus ala MetaTrader 5 (tekan M)"><i class="fa-solid fa-chart-line"></i> <span class="hidden sm:inline">Mode Fokus</span></button>
@@ -507,11 +502,11 @@ applyTheme(p);if(mq&&mq.addEventListener)mq.addEventListener('change',function()
                     <!-- Contract Size (Units / Oz / BTC) -->
                     <div class="space-y-1">
                         <div class="flex items-center justify-between">
-                            <label class="text-slate-300 font-semibold">Ukuran Kontrak (<span id="order-unit-name">Troy Oz</span>):</label>
+                            <label class="text-slate-300 font-semibold">Volume Lot (<span id="order-unit-name">1 lot = 100 Troy Oz</span>):</label>
                             <span id="order-notional-val" class="text-slate-400 text-[11px]">Nilai Kontrak: $2,650</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <input id="input-order-size" type="number" step="0.1" min="0.01" value="1" oninput="updateOrderPreview()" class="w-full bg-[#070b14] border border-slate-700 rounded px-2.5 py-1.5 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 font-mono-num">
+                            <input id="input-order-size" type="number" step="0.01" min="0.01" value="0.02" oninput="updateOrderPreview()" class="w-full bg-[#070b14] border border-slate-700 rounded px-2.5 py-1.5 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 font-mono-num">
                             <button onclick="setMarginAllocation(0.10)" class="btn-term bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded text-[11px]">10%</button>
                             <button onclick="setMarginAllocation(0.25)" class="btn-term bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded text-[11px]">25%</button>
                             <button onclick="setMarginAllocation(0.50)" class="btn-term bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1.5 rounded text-[11px]">50%</button>
@@ -755,6 +750,19 @@ applyTheme(p);if(mq&&mq.addEventListener)mq.addEventListener('change',function()
             <div class="flex gap-2 pt-1"><button class="fb on" onclick="useSharedSeed()">Coba seed ini</button><button class="fb" onclick="closeModal('shared-modal')">Tutup</button></div>
         </div>
     </div>
+    <div id="cash-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3" onclick="if(event.target===this)closeModal('cash-modal')">
+        <div class="bg-[#0b1120] border border-slate-700 rounded-lg w-full max-w-md p-4 space-y-3 font-mono text-xs">
+            <div class="flex justify-between"><b class="text-white"><i class="fa-solid fa-money-bill-transfer text-emerald-400 mr-1"></i> SETOR / TARIK SALDO</b><button onclick="closeModal('cash-modal')" class="text-slate-400 hover:text-white">[X]</button></div>
+            <div id="cash-info" class="grid grid-cols-3 gap-2"></div>
+            <label class="block text-slate-300 font-bold">Jumlah ($)</label>
+            <input id="cash-amt" type="number" min="1" step="any" class="w-full bg-[#070b14] border border-slate-700 rounded px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-emerald-400">
+            <div id="cash-presets" class="flex flex-wrap gap-1.5"></div>
+            <div class="grid grid-cols-2 gap-2"><button onclick="doDeposit()" class="btn-term bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded">Setor</button><button onclick="doWithdraw()" class="btn-term bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 rounded">Tarik</button></div>
+            <p id="cash-msg" class="text-[11px]"></p>
+            <p id="cash-perf" class="text-[11px] text-slate-400"></p>
+            <div class="max-h-40 overflow-auto"><table class="w-full whitespace-nowrap"><tbody id="cash-ledger"></tbody></table></div>
+        </div>
+    </div>
     <!-- MODAL: RIWAYAT -->
     <div id="hist-modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3" onclick="if(event.target===this)closeModal('hist-modal')">
         <div class="bg-[#0b1120] border border-slate-700 rounded-lg w-full max-w-4xl max-h-[90dvh] flex flex-col font-mono text-xs">
@@ -783,6 +791,7 @@ applyTheme(p);if(mq&&mq.addEventListener)mq.addEventListener('change',function()
                 <div class="flex flex-wrap gap-1.5" id="am-presets"></div>
             </div>
             <p id="am-note" class="text-slate-400 leading-relaxed text-[11px]"></p>
+            <button id="am-cash" class="fb hidden w-full" onclick="closeModal('acct-modal');openCash()"><i class="fa-solid fa-money-bill-transfer"></i> Setor / Tarik saldo</button>
             <button id="am-apply" onclick="applyMode()" class="btn-term w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded">Terapkan</button>
         </div>
     </div>
@@ -866,6 +875,7 @@ applyTheme(p);if(mq&&mq.addEventListener)mq.addEventListener('change',function()
 <script src="js/core.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/history.js"></script>
+<script src="js/cash.js"></script>
 <script src="js/chart.js"></script>
 <script src="js/render.js"></script>
 <script src="js/storage.js"></script>
@@ -874,6 +884,8 @@ applyTheme(p);if(mq&&mq.addEventListener)mq.addEventListener('change',function()
 <script src="js/ui-theme.js"></script>
 <script src="js/ui-account.js"></script>
 <script src="js/ui-share.js"></script>
+<script src="js/ui-cash.js"></script>
+<script src="js/ui-tour.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

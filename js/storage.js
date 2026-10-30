@@ -23,8 +23,8 @@ const idbGet = k => idbRun('readonly', s => s.get(k));
 const idbPut = (k, v) => idbRun('readwrite', s => s.put(v, k));
 const idbDelete = k => idbRun('readwrite', s => s.delete(k)).catch(() => {});
 
-/* Simpan ditunda 300 ms agar tick cepat tidak membanjiri database */
-function saveGameState() { clearTimeout(_saveTimer); _saveTimer = setTimeout(flushSave, 300); }
+/* Throttle: paling lambat 400 ms sekali (bukan debounce, supaya tetap tersimpan saat simulasi berjalan terus-menerus) */
+function saveGameState() { if (!_saveTimer) _saveTimer = setTimeout(flushSave, 400); }
 function flushSave() {
     clearTimeout(_saveTimer); _saveTimer = null;
     let snap; try { snap = structuredClone(state); } catch (e) { snap = JSON.parse(JSON.stringify(state)); }

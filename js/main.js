@@ -10,6 +10,7 @@
                 renderCandlestickChart();
             });
 
+            document.getElementById('input-order-size').value = unitsToLots(state.activePair, PAIR_CONFIGS[state.activePair].defaultSize);
             initUI();
             renderAll();
             if (!loaded) {
@@ -19,7 +20,8 @@
                 addLog('Sesi Prop-Firm v2.0 berhasil dipulihkan dari penyimpanan lokal browser.', 'INFO');
             }
 
-            setSimSpeed(1);
+            ['spd-select', 'fspd'].forEach(id => { const s = document.getElementById(id); if (s) s.innerHTML = SIM_SPEEDS.map(([v, l]) => `<option value="${v}">${l}</option>`).join(''); });
+            setSimSpeed(typeof state.simSpeedPref === 'number' && state.simSpeedPref <= 60 ? state.simSpeedPref : 1);
         };
     
         function initUI() { (window.__ui || []).forEach(fn => { try { fn(); } catch (e) { console.error(e); } }); }

@@ -80,28 +80,23 @@
         }
 
         // Dynamic Multi-Timeframe Aggregation (M1 -> M5, M15, H1)
+        /* Sisa detik sampai candle timeframe aktif ditutup (0 pada tick terakhir candle, lalu kembali ke penuh-1) */
+        function candleSecondsLeft(pairId, tf) {
+            const f = TIMEFRAME_FACTORS[tf] || 1;
+            return f * TICKS_PER_M1 - ((((state.markets[pairId].lastCandleId || 1) - 1) % f) * TICKS_PER_M1 + state.candleTick);
+        }
+
         function getAggregatedCandles(pairId, tf) {
             const base = state.markets[pairId].candles;
             const factor = TIMEFRAME_FACTORS[tf] || 1;
             if (factor === 1) return base;
 
             const agg = [];
-            for (let i = 0; i < base.length; i += factor) {
-                const slice = base.slice(i, i + factor);
-                if (slice.length === 0) continue;
-                const o = slice[0].o;
-                const c = slice[slice.length - 1].c;
-                let h = slice[0].h;
-                let l = slice[0].l;
-                for (let k = 1; k < slice.length; k++) {
-                    if (slice[k].h > h) h = slice[k].h;
-                    if (slice[k].l < l) l = slice[k].l;
-                }
-                agg.push({
-                    id: slice[0].id,
-                    endId: slice[slice.length - 1].id,
-                    o, h, l, c
-                });
+            let cur = null, bucket = null;
+            for (const cd of base) {            // kelompokkan berdasarkan ID candle (batas tetap, tidak bergeser saat riwayat dipangkas)
+                const bk = Math.floor((cd.id - 1) / factor);
+                if (bk !== bucket) { bucket = bk; cur = { id: cd.id, endId: cd.id, o: cd.o, h: cd.h, l: cd.l, c: cd.c }; agg.push(cur); }
+                else { cur.endId = cd.id; if (cd.h > cur.h) cur.h = cd.h; if (cd.l < cur.l) cur.l = cd.l; cur.c = cd.c; }
             }
             return agg;
         }
@@ -193,7 +188,7 @@
             };
             const row = document.createElement('div');
             row.className = `flex items-start gap-2 ${colors[type] || 'text-slate-300'}`;
-            row.innerHTML = `<span class="text-slate-600 shrink-0">[T#${state.tickCount}]</span><span>${msg}</span>`;
+            row.innerHTML = `<span class="text-slate-600 shrink-0">[${fmtHMS(state.tickCount - 1)}]</span><span>${msg}</span>`;
             logBox.prepend(row);
             while (logBox.children.length > 80) {
                 logBox.removeChild(logBox.lastChild);
@@ -215,8 +210,8 @@
             const m = state.markets[pairId];
             const Z = seededNormal();
 
-            const reversion = (cfg.basePrice - m.price) * (cfg.meanReversionStrength * 0.04);
-            const sigma = cfg.volatility * m.volBoost;
+            const reversion = (cfg.basePrice - m.price) * (cfg.meanReversionStrength * 0.04 * TICK_SCALE);
+            const sigma = cfg.volatility * Math.sqrt(TICK_SCALE) * m.volBoost;
             const pctMove = m.drift + sigma * Z;
 
             let nextPrice = m.price * Math.exp(pctMove) + reversion;
@@ -225,15 +220,15 @@
             m.price = nextPrice;
 
             // Decay drift & volatility boost gradually
-            m.drift *= 0.82;
-            m.volBoost = Math.max(1.0, 1.0 + (m.volBoost - 1.0) * 0.88);
+            m.drift *= DRIFT_DECAY;
+            m.volBoost = Math.max(1.0, 1.0 + (m.volBoost - 1.0) * VOL_DECAY);
 
             // Update current active M1 candle or open a new M1 candle (keep up to 360 M1 candles)
             const candles = m.candles;
             if (state.candleTick === 1) {
                 m.lastCandleId = (m.lastCandleId || candles.length) + 1;
                 candles.push({ id: m.lastCandleId, o: nextPrice, h: nextPrice, l: nextPrice, c: nextPrice });
-                if (candles.length > 360) candles.shift();
+                if (candles.length > MAX_M1_CANDLES) candles.shift();
             } else {
                 const cur = candles[candles.length - 1];
                 if (cur) {
@@ -249,11 +244,11 @@
             if (!ev) return;
 
             state.markets.XAUUSD.price = Number((state.markets.XAUUSD.price * (1 + ev.xauShock)).toFixed(2));
-            state.markets.XAUUSD.drift = ev.xauShock * 0.18;
+            state.markets.XAUUSD.drift = ev.xauShock * 0.18 * DRIFT_SCALE;
             state.markets.XAUUSD.volBoost = ev.volMult;
 
             state.markets.BTCUSD.price = Number((state.markets.BTCUSD.price * (1 + ev.btcShock)).toFixed(2));
-            state.markets.BTCUSD.drift = ev.btcShock * 0.18;
+            state.markets.BTCUSD.drift = ev.btcShock * 0.18 * DRIFT_SCALE;
             state.markets.BTCUSD.volBoost = ev.volMult;
 
             ['XAUUSD', 'BTCUSD'].forEach(pid => {
@@ -272,7 +267,7 @@
             const nextEv = MACRO_NEWS_POOL[Math.floor(seededRandom() * MACRO_NEWS_POOL.length)];
             state.upcomingNews = {
                 ...nextEv,
-                ticksLeft: 30 + Math.floor(seededRandom() * 20)
+                ticksLeft: (30 + Math.floor(seededRandom() * 20)) * TICK_MULT
             };
 
             evaluatePendingOrders();
@@ -475,6 +470,7 @@
             state.balance = curTier.startBalance;
 
             if (state.tierIndex === OWN_TIER_INDEX) {
+                state.deposited = 0; state.withdrawn = 0; state.ledger = [];
                 showBannerAlert(`MODAL HABIS! Akun modal sendiri di-reset ke saldo awal ${fmtUSD(curTier.startBalance)}.`);
                 addLog('MODAL HABIS: ekuitas menyentuh $0, akun di-reset ke saldo awal.', 'SL');
                 return;
@@ -502,18 +498,18 @@
             });
         }
 
-        function stepSimulation() {
+        function stepSimulation(render = true) {
             state.tickCount += 1;
-            state.candleTick = (state.candleTick % 10) + 1;
+            state.candleTick = (state.candleTick % TICKS_PER_M1) + 1;
 
             // Step both markets simultaneously
             stepMarketPair('XAUUSD');
             stepMarketPair('BTCUSD');
 
             // Step Swap / Funding countdown
-            state.fundingCountdown = (state.fundingCountdown || 25) - 1;
+            state.fundingCountdown = (state.fundingCountdown || 25 * TICK_MULT) - 1;
             if (state.fundingCountdown <= 0) {
-                state.fundingCountdown = 25;
+                state.fundingCountdown = 25 * TICK_MULT;
                 processSwapAndFunding();
             }
 
@@ -521,23 +517,43 @@
             state.upcomingNews.ticksLeft -= 1;
             if (state.upcomingNews.ticksLeft <= 0) {
                 triggerInstantNews();
+                state.prngState = prngState;
+                saveGameState();
                 return;
             }
 
-            if (state.candleTick === 10) {
+            if (state.candleTick === TICKS_PER_M1) {
                 runQuantAutoBot();
             }
 
             evaluatePendingOrders();
             evaluateOpenPositions();
-            state.prngState = prngState;
-            saveGameState();
-            renderAll();
+            if (render) {                     // saat dipercepat, layar & penyimpanan hanya diperbarui di tick terakhir tiap frame
+                state.prngState = prngState;
+                saveGameState();
+                renderAll();
+            }
         }
 
-        function manualStepTick() {
+        /* Pengatur waktu berbasis jam dinding: 1x = 1 tick per detik nyata; kecepatan N = N tick per detik nyata. */
+        const SIM_FRAME_MS = 100, SIM_MAX_CATCHUP = 3600;
+        let simLast = 0, simCarry = 0;
+        function simFrame(nowMs) {
+            const now = nowMs === undefined ? performance.now() : nowMs;
+            simCarry += (now - simLast) / 1000 * simSpeed;
+            simLast = now;
+            let n = Math.floor(simCarry);
+            if (n <= 0) return 0;
+            simCarry -= n;
+            if (n > SIM_MAX_CATCHUP) n = SIM_MAX_CATCHUP;   // tab tertidur lama: sisa waktu tidak dikejar
+            if (n > 120) addLog(`Mengejar <b>${fmtClock(n)}</b> waktu pasar (tab/perangkat sempat melambat).`, 'INFO');
+            for (let i = 0; i < n; i++) stepSimulation(i === n - 1);
+            return n;
+        }
+
+        function manualStepTick() {           // lompat 1 menit waktu pasar
             AudioSynth.play('order');
-            stepSimulation();
+            for (let i = 0; i < TICKS_PER_M1; i++) stepSimulation(i === TICKS_PER_M1 - 1);
         }
 
         function setSimSpeed(spd) {
@@ -547,21 +563,17 @@
 
         function setSimSpeedCore(spd) {
             simSpeed = spd;
+            state.simSpeedPref = spd;
             if (simTimer) {
                 clearInterval(simTimer);
                 simTimer = null;
             }
-            [0, 1, 2, 5].forEach(s => {
-                const btn = document.getElementById(`spd-${s}`);
-                if (!btn) return;
-                btn.className = s === spd
-                    ? 'px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-bold'
-                    : 'px-2 py-0.5 rounded text-slate-400 hover:text-white';
-            });
-
+            const sel = document.getElementById('spd-select');
+            if (sel) sel.value = String(spd);
             if (spd > 0) {
-                const ms = spd === 1 ? 500 : (spd === 2 ? 250 : 100);
-                simTimer = setInterval(stepSimulation, ms);
+                simLast = performance.now();
+                simCarry = 0;
+                simTimer = setInterval(simFrame, SIM_FRAME_MS);
             }
         }
 

@@ -55,9 +55,9 @@
             const liqThreshold = getLiquidationMarginLevel();
 
             // 1. Top Header & KPI Cards
-            document.getElementById('ui-tick-count').textContent = state.tickCount;
+            document.getElementById('ui-tick-count').textContent = fmtMarketTime(state.tickCount - 1);
             document.getElementById('ui-seed-code').textContent = state.seed;
-            document.getElementById('ui-funding-timer').textContent = `${state.fundingCountdown || 25}t`;
+            document.getElementById('ui-funding-timer').textContent = fmtClock(state.fundingCountdown || 25 * TICK_MULT);
             document.getElementById('tier-badge').textContent = curTier.name;
 
             document.getElementById('kpi-balance').textContent = fmtUSD(state.balance);
@@ -124,7 +124,7 @@
             // 2. Macro News Ticker & Slippage Warning Badge
             const ev = state.upcomingNews;
             document.getElementById('news-upcoming-title').textContent = ev.title;
-            document.getElementById('news-countdown-badge').textContent = `${ev.ticksLeft} Tick`;
+            document.getElementById('news-countdown-badge').textContent = fmtClock(ev.ticksLeft);
 
             const isHighVol = state.markets[state.activePair].volBoost > 1.25 && getSlippageProtectionPct() < 1.0;
             const slipBadge = document.getElementById('news-slippage-badge');
@@ -137,12 +137,12 @@
                 intelEl.textContent = 'Terkunci: Upgrade Terminal Intelijen Makro di Lab Quant.';
                 intelEl.className = 'text-slate-400 truncate text-[11px]';
             } else {
-                const revealThreshold = intelLvl * 14;
+                const revealThreshold = intelLvl * 14 * TICK_MULT;
                 if (ev.ticksLeft <= revealThreshold) {
                     intelEl.textContent = `BOCORAN KONSENSUS: ${ev.hint}`;
                     intelEl.className = 'text-emerald-300 font-bold truncate text-[11px]';
                 } else {
-                    intelEl.textContent = `Memindai sinyal satelit... (Bocoran terbuka dalam ${ev.ticksLeft - revealThreshold} tick)`;
+                    intelEl.textContent = `Memindai sinyal satelit... (Bocoran terbuka dalam ${fmtClock(ev.ticksLeft - revealThreshold)})`;
                     intelEl.className = 'text-indigo-300 truncate text-[11px]';
                 }
             }
@@ -182,7 +182,7 @@
             const aggCandles = getAggregatedCandles(state.activePair, activeTimeframe);
             const lastC = aggCandles[aggCandles.length - 1];
             const activeCfg = PAIR_CONFIGS[state.activePair];
-            document.getElementById('chart-candle-progress').textContent = `${activeTimeframe} | Tick ${state.candleTick}/10`;
+            document.getElementById('chart-candle-progress').textContent = `${activeTimeframe} | sisa ${fmtClock(candleSecondsLeft(state.activePair, activeTimeframe))}`;
             if (lastC) {
                 document.getElementById('chart-ohlc-readout').textContent =
                     `O: ${lastC.o.toFixed(activeCfg.decimals)} | H: ${lastC.h.toFixed(activeCfg.decimals)} | L: ${lastC.l.toFixed(activeCfg.decimals)} | C: ${lastC.c.toFixed(activeCfg.decimals)}`;

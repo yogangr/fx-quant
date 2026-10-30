@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>FX-QUANT tests</title>
 <style>body{font:14px monospace;background:#0b1120;color:#e2e8f0;padding:16px}.ok{color:#34d399}.bad{color:#fb7185}</style></head>
 <body><h3>FX-QUANT — tes engine</h3><div id="out"></div>
-<script src="stubs.js"></script><script src="../js/core.js"></script><script src="../js/engine.js"></script><script src="../js/history.js"></script>
+<script src="stubs.js"></script><script src="../js/core.js"></script><script src="../js/engine.js"></script><script src="../js/history.js"></script><script src="../js/cash.js"></script><script src="../js/persist.js"></script>
 <script src="shims.js"></script><script src="cases.js"></script>
 <script>const r=runAll();document.querySelector('#out').innerHTML=r.results.map(x=>`<div class="${x.ok?'ok':'bad'}">${x.ok?'✓':'✗'} ${x.n}${x.ok?'':' → '+x.err}</div>`).join('')+`<p>${r.passed} lulus, ${r.failed} gagal</p>`;</script></body></html>

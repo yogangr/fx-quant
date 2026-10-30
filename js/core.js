@@ -174,9 +174,9 @@
 
         const TIMEFRAME_FACTORS = {
             M1: 1,
-            M5: 3,
-            M15: 6,
-            H1: 12
+            M5: 5,
+            M15: 15,
+            H1: 60
         };
 
         const PROP_TIERS = [
@@ -217,6 +217,23 @@
                 splitPct: 90
             }
         ];
+
+        /* ===== JAM PASAR: 1 tick = 1 detik waktu pasar. 1 candle M1 = 60 tick = 1 menit. =====
+           Kecepatan 1x = waktu nyata (M1 = 1 menit sungguhan, M5 = 5 menit, H1 = 1 jam). Parameter per-tick
+           diskalakan dari engine lama (10 tick/candle) agar rentang candle & dampak berita tetap sama. */
+        const TICKS_PER_M1 = 60;
+        const TICK_MULT = TICKS_PER_M1 / 10;
+        const TICK_SCALE = 1 / TICK_MULT;
+        const DRIFT_DECAY = Math.pow(0.82, TICK_SCALE);
+        const VOL_DECAY = Math.pow(0.88, TICK_SCALE);
+        const DRIFT_SCALE = (1 - DRIFT_DECAY) / (1 - 0.82);
+        const MAX_M1_CANDLES = 1440;   // riwayat 24 jam (H1 = 24 candle)
+        const TF_SECONDS = { M1: 60, M5: 300, M15: 900, H1: 3600 };
+        const SIM_SPEEDS = [[0, '⏸ Jeda'], [1, '1x · waktu nyata'], [2, '2x'], [5, '5x'], [10, '10x'], [30, '30x'], [60, '60x · 1 menit/detik'], [300, '300x · 5 menit/detik'], [900, '900x · 15 menit/detik'], [3600, '3600x · 1 jam/detik']];
+        const _p2 = n => String(n).padStart(2, '0');
+        function fmtHMS(sec) { sec = Math.max(0, Math.floor(sec)); return `${_p2(Math.floor(sec / 3600) % 24)}:${_p2(Math.floor(sec % 3600 / 60))}:${_p2(sec % 60)}`; }
+        function fmtClock(sec) { sec = Math.max(0, Math.floor(sec)); const h = Math.floor(sec / 3600); return h ? `${h}:${_p2(Math.floor(sec % 3600 / 60))}:${_p2(sec % 60)}` : `${_p2(Math.floor(sec / 60))}:${_p2(sec % 60)}`; }
+        function fmtMarketTime(sec) { sec = Math.max(0, Math.floor(sec)); return `Hari ${Math.floor(sec / 86400) + 1} ${fmtHMS(sec)}`; }
 
         /* Akun modal sendiri = tier khusus (indeks 4): tanpa target, tanpa drawdown prop, 100% profit */
         const OWN_TIER_INDEX = 4;
@@ -347,8 +364,8 @@
 
         function createFreshState(seedStr = 'QUANT-2026') {
             prngState = hashSeedString(seedStr);
-            const xauInit = generateInitialCandles('XAUUSD', 300);
-            const btcInit = generateInitialCandles('BTCUSD', 300);
+            const xauInit = generateInitialCandles('XAUUSD', MAX_M1_CANDLES);
+            const btcInit = generateInitialCandles('BTCUSD', MAX_M1_CANDLES);
             const firstNews = MACRO_NEWS_POOL[Math.floor(seededRandom() * MACRO_NEWS_POOL.length)];
 
             return {
@@ -356,8 +373,9 @@
                 seed: seedStr,
                 prngState: prngState,
                 tickCount: 1,
-                candleTick: 1, // 1..10 ticks per M1 candle
-                fundingCountdown: 25,
+                candleTick: 1, // 1..60 tick (detik) per candle M1
+                clockV2: true,
+                fundingCountdown: 25 * TICK_MULT,
                 totalSwapPaid: 0.00,
                 activePair: 'XAUUSD',
                 tierIndex: 0,
@@ -368,6 +386,9 @@
                 totalTrades: 0,
                 nextPosId: 101,
                 history: [],
+                deposited: 0,
+                withdrawn: 0,
+                ledger: [],
                 quantBotActive: false,
                 upgrades: {
                     rawSpread: 0,    // 0..5
@@ -378,7 +399,7 @@
                 },
                 upcomingNews: {
                     ...firstNews,
-                    ticksLeft: 28
+                    ticksLeft: 28 * TICK_MULT
                 },
                 markets: {
                     XAUUSD: {

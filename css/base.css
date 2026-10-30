@@ -47,3 +47,9 @@ body.focus-mode #chart-container{flex:1;height:auto;min-height:0}
             height: 100%;
             touch-action: none;
         }
+/* Tutorial */
+.tour-block{position:fixed;inset:0;z-index:79}
+.tour-hl{position:fixed;z-index:80;display:none;border-radius:8px;pointer-events:none;box-shadow:0 0 0 9999px rgba(2,6,23,.74),0 0 0 2px var(--warn);transition:all .18s}
+.tour-card{position:fixed;z-index:81;background:var(--bg1);color:var(--tx1);border:1px solid var(--warn);border-radius:10px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+.tour-t{font-weight:700;font-size:13px;color:var(--tx0);margin-bottom:4px}.tour-x{font-size:12px;line-height:1.5;color:var(--tx2)}
+.tour-f{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--tx4)}

@@ -14,8 +14,13 @@
                     ...parsed,
                     upgrades: { ...fresh.upgrades, ...(parsed.upgrades || {}) },
                     pendingOrders: parsed.pendingOrders || [],
-                    drawings: { ...fresh.drawings, ...(parsed.drawings || {}) }
-                };
+                    drawings: { ...fresh.drawings, ...(parsed.drawings || {}) } };
+                if (!parsed.clockV2) {            // save lama (10 tick/candle) -> jam pasar baru (60 tick/candle)
+                    state.candleTick = 1;
+                    state.fundingCountdown = (parsed.fundingCountdown || 25) * TICK_MULT;
+                    if (state.upcomingNews) state.upcomingNews.ticksLeft = Math.round(state.upcomingNews.ticksLeft * TICK_MULT);
+                    state.clockV2 = true;
+                }
 
                 // Ensure candle IDs exist for drawing anchor compatibility
                 ['XAUUSD', 'BTCUSD'].forEach(pid => {

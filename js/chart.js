@@ -164,12 +164,12 @@
             const firstId = candles[0]?.id || 1;
             const tfFactor = TIMEFRAME_FACTORS[activeTimeframe] || 1;
             const candleIdToX = (cid) => {
-                const approxIdx = (cid - firstId) / tfFactor;
+                const approxIdx = (cid - 1) / tfFactor - Math.floor((firstId - 1) / tfFactor);   // bucket tetap berbasis ID
                 return indexToX(approxIdx);
             };
             const xToCandleId = (x) => {
                 const approxIdx = (x / stepX) - 1;
-                return Math.round(firstId + approxIdx * tfFactor);
+                return Math.round((approxIdx + Math.floor((firstId - 1) / tfFactor)) * tfFactor + 1);
             };
 
             // Save coordinate transform for interactive mouse handlers
@@ -432,6 +432,17 @@
             ctx.fillStyle = '#070b14';
             ctx.font = 'bold 10px "JetBrains Mono", monospace';
             ctx.fillText(curPrice.toFixed(cfg.decimals), chartW + 5, curY + 3);
+
+            // Hitung mundur penutupan candle (seperti TradingView): kotak tepat di bawah tag harga
+            if (curY > 9 && curY < priceChartH - 9) {
+                const cdH = 15;
+                let cdY = curY + 9;
+                if (cdY + cdH > priceChartH - 1) cdY = curY - 9 - cdH;   // tidak muat di bawah -> taruh di atas tag harga
+                ctx.fillStyle = cfg.accentColor;
+                ctx.fillRect(chartW + 1, cdY, rightAxisW - 2, cdH);
+                ctx.fillStyle = '#070b14';
+                ctx.fillText(fmtClock(candleSecondsLeft(pairId, activeTimeframe)), chartW + 5, cdY + 11);
+            }
             ctx.restore();
 
             // 8. Divider & RSI (14) Sub-Panel at Bottom
@@ -698,7 +709,7 @@
             light:    { '#070b14': '#f4f6fa', '#131c2e': '#e6eaf1', '#1e293b': '#d5dbe5', '#334155': '#cbd5e1', '#f8fafc': '#0f172a', '#94a3b8': '#475569', 'rgba(148,163,184,0.45)': 'rgba(71,85,105,0.45)' },
             paper:    { '#070b14': '#f3ead8', '#131c2e': '#e6dac1', '#1e293b': '#d6c8a8', '#334155': '#cbbd9a', '#f8fafc': '#2b2418', '#94a3b8': '#6b5d44', 'rgba(148,163,184,0.45)': 'rgba(107,93,68,0.45)' },
             amoled:   { '#070b14': '#000000', '#131c2e': '#0f0f0f', '#1e293b': '#1c1c1c' },
-            contrast: { '#131c2e': '#1e293b', '#1e293b': '#475569', '#64748b': '#cbd5e1', '#94a3b8': '#f1f5f9' }
+            contrast: { '#070b14': '#000000', '#131c2e': '#1e293b', '#1e293b': '#475569', '#64748b': '#cbd5e1', '#94a3b8': '#f1f5f9' }
         };
         function mapCanvasColor(v) {
             const t = CANVAS_THEMES[document.documentElement.dataset.eff];
